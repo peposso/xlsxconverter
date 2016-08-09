@@ -22,7 +22,6 @@ int main(int argc, char** argv)
         converter.run();
     }
 
-
     return 0;
 }
 
