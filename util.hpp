@@ -8,6 +8,7 @@
 namespace xlsxconverter {
 namespace util {
 
+inline
 bool fexists(const std::string& name) {
     struct stat statbuf;
     return ::stat(name.c_str(), &statbuf) == 0;

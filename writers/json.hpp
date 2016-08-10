@@ -2,26 +2,30 @@
 #include <type_traits>
 #include <string>
 #include <sstream>
+#include "yaml_config.hpp"
 
 namespace xlsxconverter {
 namespace writers {
 
-template<bool cond, class T = void>
-using enable_if_t = typename std::enable_if<cond, T>::type;
-
 struct JsonWriter
 {
+    YamlConfig& config;
     std::stringstream buffer;
 
     bool is_first_row = false;
     bool is_first_field = false;
 
+    inline
+    JsonWriter(YamlConfig& config) : config(config) {}
+
+    inline
     void begin() {
         buffer.clear();
         buffer << "[";
         is_first_row = true;
     }
 
+    inline
     void begin_row() {
         if (is_first_row) {
             buffer << "\n";
@@ -33,6 +37,7 @@ struct JsonWriter
         is_first_field = true;
     }
 
+    inline
     void write_name(const std::string& name) {
         if (is_first_field) {
             buffer << "\n";
@@ -49,6 +54,7 @@ struct JsonWriter
         buffer << value;
     }
 
+    inline
     void end_row() {
         if (is_first_field) {
             buffer << "}";
@@ -59,6 +65,7 @@ struct JsonWriter
         }
     }
 
+    inline
     void end() {
         buffer << "\n]\n";
     }
@@ -78,6 +85,9 @@ void JsonWriter::field<std::string>(const std::string& name, const std::string& 
         switch (c) {
             case '"': { buffer << "\\\""; break; }
             case '\\': { buffer << "\\\\"; break; }
+            case '\t': { buffer << "\\t"; break; }
+            case '\r': { buffer << "\\r"; break; }
+            case '\n': { buffer << "\\n"; break; }
             default: { buffer << c; break; }
         }
     }

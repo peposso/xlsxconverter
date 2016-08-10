@@ -23,33 +23,12 @@ struct Converter
         auto book = Workbook(config.get_xls_path());
         auto& sheet = book.sheet_by_name(config.target_sheet_name);
 
-        // mapping column.
-        std::vector<int> column_order;
-        for (int k = 0; k < config.fields.size(); ++k) {
-            auto& field = config.fields[k];
-            bool found = false;
-            // util::log("i=%d cell=%s type=%d", i, cell.as_str(), cell.type);
-            for (int i = 0; i < sheet.ncols(); ++i) {;
-                auto& cell = sheet.cell(config.row - 1, i);
-                // util::log("name=%s", field.name);
-                if (cell.as_str() == field.name) {
-                    if (util::contains(column_order, k)) {
-                        throw util::exception("field.column=%s is duplicated.", field.column);
-                    }
-                    column_order.push_back(i);
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                throw util::exception("field{column=%s,name=%s} is NOT exists in xlsx.", field.column, field.name);
-            }
-        }
+        auto column_mapping = map_column(sheet);
 
         // process data
         std::string out;
         if (config.handler.type == YamlConfig::Handler::Type::kJson) {
-            out = write<writers::JsonWriter>(sheet, column_order);
+            out = write<writers::JsonWriter>(sheet, column_mapping);
         } else {
             throw util::exception("unknown handler.type=%d.", config.handler.type);
         }
@@ -59,13 +38,39 @@ struct Converter
 
     }
 
+    inline
+    std::vector<int> map_column(xlsx::Sheet& sheet) {
+        std::vector<int> column_mapping;
+        for (int k = 0; k < config.fields.size(); ++k) {
+            auto& field = config.fields[k];
+            bool found = false;
+            // util::log("i=%d cell=%s type=%d", i, cell.as_str(), cell.type);
+            for (int i = 0; i < sheet.ncols(); ++i) {;
+                auto& cell = sheet.cell(config.row - 1, i);
+                // util::log("name=%s", field.name);
+                if (cell.as_str() == field.name) {
+                    if (util::contains(column_mapping, k)) {
+                        throw util::exception("field.column=%s is duplicated.", field.column);
+                    }
+                    column_mapping.push_back(i);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                throw util::exception("field{column=%s,name=%s} is NOT exists in xlsx.", field.column, field.name);
+            }
+        }
+        return column_mapping;
+    }
+
     template<class T>
-    std::string write(xlsx::Sheet& sheet, std::vector<int>& column_order) {
-        auto writer = T();
+    std::string write(xlsx::Sheet& sheet, std::vector<int>& column_mapping) {
+        auto writer = T(config);
         writer.begin();
         for (int j = config.row; j < sheet.nrows(); ++j) {
             bool is_empty_line = true;
-            for (int i: column_order) {
+            for (int i: column_mapping) {
                 auto& cell = sheet.cell(j, i);
                 if (cell.type != xlsx::Cell::Type::kEmpty) {
                     is_empty_line = false;
@@ -75,9 +80,9 @@ struct Converter
             if (is_empty_line) { continue; }
 
             writer.begin_row();
-            for (int k = 0; k < column_order.size(); ++k) {
+            for (int k = 0; k < column_mapping.size(); ++k) {
                 auto& field = config.fields[k];
-                auto i = column_order[k];
+                auto i = column_mapping[k];
                 auto& cell = sheet.cell(j, i);
                 using FT = YamlConfig::Field::Type;
                 using CT = xlsx::Cell::Type;

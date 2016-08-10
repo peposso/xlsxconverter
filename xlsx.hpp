@@ -18,12 +18,11 @@
 namespace xlsx {
 
 template<class...A>
-std::string stringer(const A&...a) {
+std::string ss(const A&...a) {
     auto ss = std::stringstream();
     (void)(int[]){0, ((void)(ss << a), 0)... };
     return ss.str();
 }
-
 
 struct StyleSheet
 {
@@ -392,11 +391,13 @@ struct Sheet
 struct Workbook
 {
     struct Exception: std::runtime_error {
-        Exception(const char* what) :runtime_error(what) {}
+        template<class...A>
+        Exception(A...a) : std::runtime_error(ss(a...).c_str()) {}
     };
 
     ZipArchive::Ptr archive;
     std::unordered_map<std::string, int> entry_indexes;
+    std::vector<std::string> entry_names;  // for debug
     std::unordered_map<std::string, std::string> rels;
     int nsheets_ = -1;
 
@@ -405,8 +406,6 @@ struct Workbook
     std::unordered_map<std::string, Sheet> sheets;
     std::shared_ptr<std::vector<std::string>> shared_string;
     std::shared_ptr<StyleSheet> style_sheet;
-
-    static const std::string sheet_path_prefix;  // = "xl/worksheets/sheet";
 
     Workbook() = delete;
 
@@ -433,6 +432,7 @@ struct Workbook
                 continue;
             }
             entry_indexes[fullname] = i;
+            entry_names.push_back(fullname);
         }
 
         if (entry_indexes.count("xl/workbook.xml") == 0) {
@@ -490,10 +490,13 @@ struct Workbook
 
     inline
     std::string read_entry(int index) {
+        if (index < 0 || entry_names.size() <= index) {
+            throw Exception("entry_index=", index, ": out of range.");
+        }
         auto entry = archive->GetEntry(index);
         auto stream_ptr = entry->GetDecompressionStream();
         if (stream_ptr == nullptr) {
-            throw Exception("cant decode stream !!");
+            throw Exception("entry=", entry_names[index], ": cant decode stream.");
         }
         std::stringstream ss;
         ss << stream_ptr->rdbuf();
@@ -515,7 +518,7 @@ struct Workbook
     inline
     std::unique_ptr<pugi::xml_document> load_doc(const std::string& name) {
         if (entry_indexes.count(name) == 0) {
-            throw Exception(stringer("entry=", name, " not found").c_str());
+            throw Exception("entry=", name, ": not found.");
         }
         return load_doc(entry_indexes[name]);
     }
@@ -538,7 +541,7 @@ struct Workbook
     inline
     Sheet& sheet_by_name(std::string name) {
         if (sheet_rid_by_name.count(name) == 0) {
-            throw Exception("unknown sheet name");
+            throw Exception("sheet_name=", name, ": not found.");
         }
         return sheet(sheet_rid_by_name[name]);
     }
@@ -563,7 +566,5 @@ struct Workbook
         set_format_tz(local_time - utc_time);
     }
 };
-
-const std::string Workbook::sheet_path_prefix = "xl/worksheets/sheet";
 
 }

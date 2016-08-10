@@ -19,16 +19,3 @@ time for i in {1..30}; do
     rm output/dummy1.json
 done
 
-# time ssconvert test/dummy1.yaml --xls_search_path test --yaml_search_path test --json_base_path output
-# time ssconvert test/dummy1.yaml --xls_search_path test --yaml_search_path test --json_base_path output
-# time ssconvert test/dummy1.yaml --xls_search_path test --yaml_search_path test --json_base_path output
-# time ssconvert test/dummy1.yaml --xls_search_path test --yaml_search_path test --json_base_path output
-# time ssconvert test/dummy1.yaml --xls_search_path test --yaml_search_path test --json_base_path output
-
-# time ./xlsxconverter test/dummy1.yaml --xls_search_path test --yaml_search_path test --output_base_path output
-# time ./xlsxconverter test/dummy1.yaml --xls_search_path test --yaml_search_path test --output_base_path output
-# time ./xlsxconverter test/dummy1.yaml --xls_search_path test --yaml_search_path test --output_base_path output
-# time ./xlsxconverter test/dummy1.yaml --xls_search_path test --yaml_search_path test --output_base_path output
-# time ./xlsxconverter test/dummy1.yaml --xls_search_path test --yaml_search_path test --output_base_path output
-
-

@@ -3,6 +3,8 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <algorithm>
+
 #include <yaml-cpp/yaml.h>
 
 #include "util.hpp"
@@ -17,8 +19,8 @@ struct YamlConfig
         };
         Type type;
         std::string path;
-        int indent;
-        bool sort_keys;
+        int indent = 4;
+        bool sort_keys = false;
 
         void parse_type(std::string typestr) {
             if      (typestr == "json") { this->type = Type::kJson; }
@@ -92,6 +94,12 @@ struct YamlConfig
             field.name = node["name"].as<std::string>();
             fields.push_back(std::move(field));
         }
+
+        if (handler.sort_keys) {
+            std::sort(fields.begin(), fields.end(), [](Field& a, Field& b) {
+                return a.column < b.column;
+            });
+        }
     }
 
     std::string get_xls_path() {
@@ -100,13 +108,6 @@ struct YamlConfig
 
     std::string get_output_path() {
         return arg_config.output_base_path + '/' + handler.path;
-    }
-
-    int find_column(std::string column) {
-        for (int i = 0; i < fields.size(); ++i) {
-            if (fields[i].column == column) return i;
-        }
-        return -1;
     }
 };
 
