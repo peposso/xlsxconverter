@@ -84,26 +84,7 @@ struct Converter
                 auto& field = config.fields[k];
                 auto i = column_mapping[k];
                 auto& cell = sheet.cell(j, i);
-                using FT = YamlConfig::Field::Type;
-                using CT = xlsx::Cell::Type;
-
-                if (field.type == FT::kInt) {
-                    writer.field(field.column, cell.as_int());
-                } else if (field.type == FT::kFloat) {
-                    writer.field(field.column, cell.as_double());
-                } else if (field.type == FT::kChar) {
-                    writer.field(field.column, cell.as_str());
-                } else if (field.type == FT::kDateTime) {
-                    if (cell.type == CT::kDateTime) {
-                        writer.field(field.column, cell.isoformat());
-                    } else if (cell.type == CT::kEmpty) {
-                        writer.field(field.column, nullptr);
-                    } else {
-                        writer.field(field.column, cell.as_str());
-                        // throw util::exception("type error at cell(%d,%d)=[%s] type=%s", j, i, cell.as_str(), cell.type_name());
-                    }
-                }
-
+                write_cell(writer, cell, field);
             }
             writer.end_row();
         }
@@ -111,6 +92,75 @@ struct Converter
         return writer.buffer.str();
     }
 
+    template<class T>
+    void write_cell(T& writer, xlsx::Cell& cell, YamlConfig::Field& field) {
+        using FT = YamlConfig::Field::Type;
+        using CT = xlsx::Cell::Type;
+
+        if (field.type == FT::kInt)
+        {
+            if (cell.type == CT::kInt || cell.type == CT::kDouble) {
+                writer.field(field.column, cell.as_int());
+                return;
+            }
+            if (cell.type == CT::kEmpty && field.using_default) {
+                write_cell_default(writer, cell, field);
+                return;
+            }
+            throw util::exception("%s: type error. cell.type=%s", config.target, cell.type_name());
+        }
+        else if (field.type == FT::kFloat)
+        {
+            if (cell.type == CT::kInt || cell.type == CT::kDouble) {
+                writer.field(field.column, cell.as_double());
+                return;
+            }
+            if (cell.type == CT::kEmpty && field.using_default) {
+                write_cell_default(writer, cell, field);
+                return;
+            }
+            throw util::exception("%s: type error. cell.type=%s", config.target, cell.type_name());
+        }
+        else if (field.type == FT::kChar)
+        {
+            if (cell.type == CT::kEmpty && field.using_default) {
+                write_cell_default(writer, cell, field);
+                return;
+            }
+            writer.field(field.column, cell.as_str());
+            return;
+        }
+        else if (field.type == FT::kDateTime)
+        {
+            if (cell.type == CT::kDateTime) {
+                writer.field(field.column, cell.isoformat());
+                return;
+            }
+            if (cell.type == CT::kEmpty && field.using_default) {
+                write_cell_default(writer, cell, field);
+                return;
+            }
+            throw util::exception("%s: type error. cell.type=%s", config.target, cell.type_name());
+        }
+        throw util::exception("%s: unknown field.type=%d", field.type);
+    }
+
+    template<class T>
+    void write_cell_default(T& writer, xlsx::Cell& cell, YamlConfig::Field& field) {
+        auto& v = field.default_value;
+        if (v.type() == typeid(int64_t)) {
+            writer.field(field.column, boost::any_cast<int64_t>(v));
+        } else if (v.type() == typeid(double)) {
+            writer.field(field.column, boost::any_cast<double>(v));
+        } else if (v.type() == typeid(bool)) {
+            writer.field(field.column, boost::any_cast<bool>(v));
+        } else if (v.type() == typeid(std::string)) {
+            writer.field(field.column, boost::any_cast<std::string>(v));
+        } else if (v.type() == typeid(std::nullptr_t)) {
+            writer.field(field.column, boost::any_cast<std::nullptr_t>(v));
+        }
+    }
+    
 };
 
 }

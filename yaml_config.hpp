@@ -41,12 +41,74 @@ struct YamlConfig
         boost::any default_value;
 
         void parse_type(std::string typestr) {
-            if      (typestr == "int") { this->type = Type::kInt; }
-            else if (typestr == "float") { this->type = Type::kFloat; }
-            else if (typestr == "bool") { this->type = Type::kBool; }
-            else if (typestr == "char") { this->type = Type::kChar; }
-            else if (typestr == "datetime") { this->type = Type::kDateTime; }
-            else if (typestr == "foreignkey") { this->type = Type::kForeignKey; }
+            if      (typestr == "int") { type = Type::kInt; }
+            else if (typestr == "float") { type = Type::kFloat; }
+            else if (typestr == "bool") { type = Type::kBool; }
+            else if (typestr == "char") { type = Type::kChar; }
+            else if (typestr == "datetime") { type = Type::kDateTime; }
+            else if (typestr == "foreignkey") { type = Type::kForeignKey; }
+        }
+        void parse_default(YAML::Node node, const std::string& path) {
+            if (!node.IsDefined()) {
+                using_default = false;
+                return;
+            }
+            using_default = true;
+            switch (node.Type()) {
+                case YAML::NodeType::Undefined:
+                case YAML::NodeType::Null: {
+                    default_value = nullptr;
+                    return;
+                }
+                case YAML::NodeType::Sequence: {
+                    throw util::exception(
+                        "%s: field=%s: bad default type. type=Sequence.",
+                        path, column);
+                }
+                case YAML::NodeType::Map: {
+                    throw util::exception(
+                        "%s: field=%s: bad default type. type=Map.",
+                        path, column);
+                }
+                case YAML::NodeType::Scalar: {
+                    break;
+                }
+            }
+            std::string strval = node.as<std::string>();
+            if (strval.empty()) {
+                default_value = strval;
+                return;
+            }
+            int64_t intval = 0;
+            bool boolval = false;
+            bool boolable = false;
+            bool intable = false;
+            try {
+                intval = node.as<int64_t>();
+                intable = true;
+            } catch (const YAML::BadConversion& exc) {
+                intable = false;
+            }
+            try {
+                boolval = node.as<bool>();
+                boolable = true;
+            } catch (const YAML::BadConversion& exc) {
+                boolable = false;
+            }
+            if (!intable && boolable) {
+                // maybe. true, yes, false, no...
+                default_value = boolval;
+                return;
+            }
+            try {
+                default_value = node.as<double>();
+                return;
+            } catch (const YAML::BadConversion& exc) {}
+            if (intable) {
+                default_value = intval;
+                return;
+            }
+            default_value = strval;
         }
     };
 
@@ -97,6 +159,7 @@ struct YamlConfig
             field.parse_type(node["type"].as<std::string>());
             field.column = node["column"].as<std::string>();
             field.name = node["name"].as<std::string>();
+            field.parse_default(node["default"], path);
             fields.push_back(std::move(field));
         }
 
