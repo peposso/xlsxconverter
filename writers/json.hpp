@@ -101,7 +101,7 @@ void JsonWriter::field<std::string>(const std::string& name, const std::string& 
     } else {
         for (auto uc: util::u8to32iter(value)) {
             if (uc >= 0x80) {
-                buffer << "\\u" << std::hex << uc;
+                buffer << "\\u" << std::hex << uc << std::dec;
             } else {
                 putchar_(uc);
             }

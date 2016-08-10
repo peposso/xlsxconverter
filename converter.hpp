@@ -140,6 +140,12 @@ struct Converter
                 write_cell_default(writer, cell, field);
                 return;
             }
+            if (cell.type == CT::kString) {
+                time_t time = util::parse_datetime(cell.as_str());
+                util::log("time=%ld", time);
+                writer.field(field.column, util::isoformat(time));
+                return;
+            }
             throw util::exception("%s: type error. cell.type=%s", config.target, cell.type_name());
         }
         throw util::exception("%s: unknown field.type=%d", field.type);
