@@ -5,6 +5,7 @@
 #include <fstream>
 #include <algorithm>
 
+#include <boost/any.hpp>
 #include <yaml-cpp/yaml.h>
 
 #include "util.hpp"
@@ -21,6 +22,7 @@ struct YamlConfig
         std::string path;
         int indent = 4;
         bool sort_keys = false;
+        bool allow_non_ascii = false;  // extension.
 
         void parse_type(std::string typestr) {
             if      (typestr == "json") { this->type = Type::kJson; }
@@ -35,6 +37,8 @@ struct YamlConfig
         Type type;
         std::string column;
         std::string name;
+        bool using_default = false;
+        boost::any default_value;
 
         void parse_type(std::string typestr) {
             if      (typestr == "int") { this->type = Type::kInt; }
@@ -83,6 +87,7 @@ struct YamlConfig
             if (auto o = node["type"]) handler.parse_type(o.as<std::string>());
             if (auto o = node["indent"]) handler.indent = o.as<int>();
             if (auto o = node["sort_keys"]) handler.sort_keys = o.as<bool>();
+            if (auto o = node["allow_non_ascii"]) handler.allow_non_ascii = o.as<bool>();
         }
 
         // fields

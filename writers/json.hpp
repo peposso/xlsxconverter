@@ -69,6 +69,18 @@ struct JsonWriter
     void end() {
         buffer << "\n]\n";
     }
+
+    inline
+    void putchar_(char c) {
+        switch (c) {
+            case '"': { buffer << "\\\""; break; }
+            case '\\': { buffer << "\\\\"; break; }
+            case '\t': { buffer << "\\t"; break; }
+            case '\r': { buffer << "\\r"; break; }
+            case '\n': { buffer << "\\n"; break; }
+            default: { buffer << c; break; }
+        }
+    }
 };
 
 template<>
@@ -77,18 +89,22 @@ void JsonWriter::field<bool>(const std::string& name, const bool& value) {
     buffer << (value ? "true" : "false");
 }
 
+
 template<>
 void JsonWriter::field<std::string>(const std::string& name, const std::string& value) {
     write_name(name);
     buffer << "\"";
-    for (auto c: value) {
-        switch (c) {
-            case '"': { buffer << "\\\""; break; }
-            case '\\': { buffer << "\\\\"; break; }
-            case '\t': { buffer << "\\t"; break; }
-            case '\r': { buffer << "\\r"; break; }
-            case '\n': { buffer << "\\n"; break; }
-            default: { buffer << c; break; }
+    if (config.handler.allow_non_ascii) {
+        for (auto c: value) {
+            putchar_(c);
+        }
+    } else {
+        for (auto uc: util::u8to32iter(value)) {
+            if (uc >= 0x80) {
+                buffer << "\\u" << std::hex << uc;
+            } else {
+                putchar_(uc);
+            }
         }
     }
     buffer << "\"";

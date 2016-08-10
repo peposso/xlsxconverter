@@ -11,13 +11,14 @@ endif
 SRCS = $(wildcard *.cpp)
 OBJS = $(SRCS:%.cpp=%.o)
 LIBS = external/libzip.a external/libpugixml.a external/libyaml-cpp.a
+HEADERS = $(wildcard *.hpp) $(wildcard writers/*.hpp)
 
-CPPFLAGS = -g -std=c++11 -O3 -I. -I./external/ziplib/Source/ZipLib -I./external/pugixml -I./external/yaml-cpp/include
+CPPFLAGS = -g -std=c++11 -O3 -I. -I./external -I./external/ziplib/Source/ZipLib -I./external/pugixml -I./external/yaml-cpp/include
 LDFLAGS = -L./external -lzip -lpugixml -lyaml-cpp
 
 all: $(TARGET)
 
-main.o: main.cpp xlsx.hpp yaml_config.hpp arg_config.hpp converter.hpp
+main.o: main.cpp $(HEADERS)
 
 external/libzip.a:
 	cd external/ziplib && make CC=$(CC) CXX=$(CXX)
