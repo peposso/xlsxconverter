@@ -54,61 +54,12 @@ struct YamlConfig
                 return;
             }
             using_default = true;
-            switch (node.Type()) {
-                case YAML::NodeType::Undefined:
-                case YAML::NodeType::Null: {
-                    default_value = nullptr;
-                    return;
-                }
-                case YAML::NodeType::Sequence: {
-                    throw utils::exception(
-                        "%s: field=%s: bad default type. type=Sequence.",
-                        path, column);
-                }
-                case YAML::NodeType::Map: {
-                    throw utils::exception(
-                        "%s: field=%s: bad default type. type=Map.",
-                        path, column);
-                }
-                case YAML::NodeType::Scalar: {
-                    break;
-                }
+            default_value = YamlConfig::node_to_any(node);
+            if (default_value.type() == typeid(utils::exception)) {
+                throw utils::exception(
+                    "%s: field=%s: bad default type.",
+                    path, column);
             }
-            std::string strval = node.as<std::string>();
-            if (strval.empty()) {
-                default_value = strval;
-                return;
-            }
-            int64_t intval = 0;
-            bool boolval = false;
-            bool boolable = false;
-            bool intable = false;
-            try {
-                intval = node.as<int64_t>();
-                intable = true;
-            } catch (const YAML::BadConversion& exc) {
-                intable = false;
-            }
-            try {
-                boolval = node.as<bool>();
-                boolable = true;
-            } catch (const YAML::BadConversion& exc) {
-                boolable = false;
-            }
-            if (!intable && boolable) {
-                // maybe. true, yes, false, no...
-                default_value = boolval;
-                return;
-            }
-            try {
-                default_value = node.as<double>();
-                return;
-            } catch (const YAML::BadConversion& exc) {}
-            if (intable) {
-                default_value = intval;
-                return;
-            }
-            default_value = strval;
         }
     };
 
@@ -170,12 +121,64 @@ struct YamlConfig
         }
     }
 
+    inline
     std::string get_xls_path() {
         return arg_config.xls_search_path + '/' + target_xls_path;
     }
 
+    inline
     std::string get_output_path() {
         return arg_config.output_base_path + '/' + handler.path;
+    }
+
+    inline static
+    boost::any node_to_any(YAML::Node node) {
+        switch (node.Type()) {
+            case YAML::NodeType::Undefined:
+            case YAML::NodeType::Null: {
+                return nullptr;
+            }
+            case YAML::NodeType::Sequence: {
+                return utils::exception("");
+            }
+            case YAML::NodeType::Map: {
+                return utils::exception("");
+            }
+            case YAML::NodeType::Scalar: {
+                break;
+            }
+        }
+        std::string strval = node.as<std::string>();
+        if (strval.empty()) {
+            return strval;
+        }
+        int64_t intval = 0;
+        bool boolval = false;
+        bool boolable = false;
+        bool intable = false;
+        try {
+            intval = node.as<int64_t>();
+            intable = true;
+        } catch (const YAML::BadConversion& exc) {
+            intable = false;
+        }
+        try {
+            boolval = node.as<bool>();
+            boolable = true;
+        } catch (const YAML::BadConversion& exc) {
+            boolable = false;
+        }
+        if (!intable && boolable) {
+            // maybe. true, yes, false, no...
+            return boolval;
+        }
+        try {
+            return node.as<double>();
+        } catch (const YAML::BadConversion& exc) {}
+        if (intable) {
+            return intval;
+        }
+        return strval;
     }
 };
 
