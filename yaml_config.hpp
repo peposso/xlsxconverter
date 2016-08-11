@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <unordered_set>
 
 #include <boost/any.hpp>
 #include <yaml-cpp/yaml.h>
@@ -42,6 +43,7 @@ struct YamlConfig
         std::string name;
         bool using_default = false;
         boost::any default_value;
+        Validate validate;
 
         void parse_type(std::string typestr) {
             if      (typestr == "int") { type = Type::kInt; }
@@ -114,7 +116,6 @@ struct YamlConfig
             field.column = node["column"].as<std::string>();
             field.name = node["name"].as<std::string>();
             field.parse_default(node["default"], path);
-            field.validate = Validate();
             if (auto v = node["validate"]) {
                 if (auto n = v["unique"]) field.validate.unique = n.as<bool>();
             }
