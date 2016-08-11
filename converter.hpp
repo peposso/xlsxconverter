@@ -12,10 +12,36 @@ namespace xlsxconverter {
 
 struct Converter
 {
+    struct Validator {
+        Field& field;
+        std::unordered_set<std::string> strdata;
+        std::unordered_set<int64_t> intdata;
+
+        inline Validator(Field& field) : field(field) {}
+
+        inline bool operator(std::string& val) {
+            if (!field.validate.unique) return true;
+            if (strdata.count(val) != 0) return false;
+            strdata.insert(val);
+            return true;
+        }
+        inline bool operator(int64_t& val) {
+            if (!field.validate.unique) return true;
+            if (intdata.count(val) != 0) return false;
+            intdata.insert(val);
+            return true;
+        }
+    }
+
     YamlConfig& config;
+    std::vector<Validator> validators;
 
     inline
-    Converter(YamlConfig& config_) : config(config_) {}
+    Converter(YamlConfig& config_) : config(config_) {
+        for (auto& field: config.fields) {
+            validators.push_emplace(field);
+        }
+    }
 
     inline
     void run() {
@@ -95,7 +121,7 @@ struct Converter
                 auto& field = config.fields[k];
                 auto i = column_mapping[k];
                 auto& cell = sheet.cell(j, i);
-                write_cell(writer, cell, field);
+                write_cell(writer, cell, field, k);
             }
             writer.end_row();
         }
@@ -104,14 +130,19 @@ struct Converter
     }
 
     template<class T>
-    void write_cell(T& writer, xlsx::Cell& cell, YamlConfig::Field& field) {
+    void write_cell(T& writer, xlsx::Cell& cell, YamlConfig::Field& field, int index) {
         using FT = YamlConfig::Field::Type;
         using CT = xlsx::Cell::Type;
 
         if (field.type == FT::kInt)
         {
             if (cell.type == CT::kInt || cell.type == CT::kDouble) {
-                writer.field(field.column, cell.as_int());
+                auto v = cell.as_int();
+                if (!validator[index](v)) {
+                    throw utils::exception("%s: cell(%d,%d)=%ld: validation error.", 
+                                           config.target, cell.row, cell.col, v);
+                }
+                writer.field(field.column, v);
                 return;
             }
             if (cell.type == CT::kEmpty && field.using_default) {
@@ -138,7 +169,12 @@ struct Converter
                 write_cell_default(writer, cell, field);
                 return;
             }
-            writer.field(field.column, cell.as_str());
+            auto v = cell.as_str();
+            if (!validator[index](v)) {
+                throw utils::exception("%s: cell(%d,%d)=%s: validation error.", 
+                                       config.target, cell.row, cell.col, v);
+            }
+            writer.field(field.column, v);
             return;
         }
         else if (field.type == FT::kDateTime)

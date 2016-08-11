@@ -34,6 +34,9 @@ struct YamlConfig
         enum Type {
             kError, kInt, kFloat, kBool, kChar, kDateTime, kForeignKey,
         };
+        struct Validate {
+            bool unique = false;
+        };
         Type type;
         std::string column;
         std::string name;
@@ -96,11 +99,11 @@ struct YamlConfig
 
         // handler;
         if (auto node = doc["handler"]) {
-            if (auto o = node["path"]) handler.path = o.as<std::string>();
-            if (auto o = node["type"]) handler.parse_type(o.as<std::string>());
-            if (auto o = node["indent"]) handler.indent = o.as<int>();
-            if (auto o = node["sort_keys"]) handler.sort_keys = o.as<bool>();
-            if (auto o = node["allow_non_ascii"]) handler.allow_non_ascii = o.as<bool>();
+            if (auto n = node["path"]) handler.path = n.as<std::string>();
+            if (auto n = node["type"]) handler.parse_type(n.as<std::string>());
+            if (auto n = node["indent"]) handler.indent = n.as<int>();
+            if (auto n = node["sort_keys"]) handler.sort_keys = n.as<bool>();
+            if (auto n = node["allow_non_ascii"]) handler.allow_non_ascii = n.as<bool>();
         }
 
         // fields
@@ -111,6 +114,10 @@ struct YamlConfig
             field.column = node["column"].as<std::string>();
             field.name = node["name"].as<std::string>();
             field.parse_default(node["default"], path);
+            field.validate = Validate();
+            if (auto v = node["validate"]) {
+                if (auto n = v["unique"]) field.validate.unique = n.as<bool>();
+            }
             fields.push_back(std::move(field));
         }
 
