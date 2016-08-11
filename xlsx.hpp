@@ -173,27 +173,25 @@ struct Cell
         kEmpty, kString, kInt, kDouble, kDateTime
     };
 
-    static int document_tzseconds;
-    static int format_tzseconds;
-
     std::string v;
-    int64_t i_ = -1;
+    int row = -1;
+    int col = -1;
     Type type = Type::kEmpty;
 
     inline
-    Cell() : Cell("", "", -1, nullptr, nullptr) {}
+    Cell() : Cell(-1, -1, "", "", -1, nullptr, nullptr) {}
 
     inline
-    Cell(std::string v_, std::string t, int s,
+    Cell(int row, int col, std::string v_, std::string t, int s,
          std::shared_ptr<std::vector<std::string>> shared_string,
          std::shared_ptr<StyleSheet> style_sheet)
-    : v(v_) {
+    : row(row), col(col), v(v_) {
         if (v == "") {
             type = Type::kEmpty;
         } else if (t == "s") {
             type = Type::kString;
             if (shared_string.get() != nullptr) {
-                int i = std::stoi(v_);
+                int i = std::stoi(v);
                 v = i < shared_string->size() ? shared_string->at(i) : "";
             }
         } else {
@@ -239,7 +237,11 @@ struct Cell
     }
 
     inline
-    time_t as_time() {
+    time_t as_time(int tz_seconds=0) {
+        // xldate is double.
+        //   int-part: 0000-1-1 base days.
+        //   frac-part: time seconds / (24*60*60).
+        //   does not contain timezone info.
         auto xldatetime = as_double();
         int64_t xldays = xldatetime;
         double seconds = (xldatetime - xldays) * 86400.0;
@@ -252,47 +254,15 @@ struct Cell
         } else if (seconds < -0.1) {
             seconds -= 0.5;
         }
-        // 25569 is epoch days.
+        // 25569 is epoch days. (time_t is epoch based-seconds.)
         time_t time = (xldays - 25569) * 86400 + seconds;
-        return time - document_tzseconds;
-    }
-
-    inline
-    std::string isoformat() {
-        int tz = format_tzseconds;
-        auto time = as_time() + tz;
-        auto tm = gmtime(&time);
-        std::stringstream ss;
-        ss << std::setfill('0') << std::setw(4) << (tm->tm_year + 1900) << '-';
-        ss << std::setfill('0') << std::setw(2) << (tm->tm_mon + 1) << '-';
-        ss << std::setfill('0') << std::setw(2) << (tm->tm_mday) << 'T';
-        ss << std::setfill('0') << std::setw(2) << (tm->tm_hour) << ':';
-        ss << std::setfill('0') << std::setw(2) << (tm->tm_min) << ':';
-        ss << std::setfill('0') << std::setw(2) << (tm->tm_sec);
-        if (tz == 0) {
-            ss << 'Z';
-            return ss.str();
-        }
-        if (tz < 0) {
-            tz = -tz;
-            ss << '-';
-        } else {
-            ss << '+';
-        }
-        int minutes = tz / 60;
-        int hour = minutes / 60;
-        int minute = minutes % 60;
-        ss << std::setfill('0') << std::setw(2) << (hour);
-        ss << std::setfill('0') << std::setw(2) << (minute);
-        return ss.str();
+        return time - tz_seconds;
     }
 
     std::string as_str() {
         return v;
     }
 };
-int Cell::document_tzseconds = 0;
-int Cell::format_tzseconds = 0;
 
 struct Sheet
 {
@@ -365,6 +335,7 @@ struct Sheet
 
     inline
     Cell& cell(int row, int col) {
+        // row, col: 0-index
         if (row < 0 || nrows() <= row) return empty_cell;
         if (col < 0 || ncols() <= col) return empty_cell;
         if (cells_.size() <= row) cells_.resize(row + 1);
@@ -374,11 +345,12 @@ struct Sheet
 
         auto& row_cells = cells_[row];
         row_cells.clear();
+        int i = 0;
         for (auto& c: row_nodes()[row].children("c")) {
             std::string t = c.attribute("t").as_string();
             auto s = c.attribute("s").as_int();
             std::string v = c.child("v").text().as_string();
-            row_cells.push_back(Cell(v, t, s, shared_string, style_sheet));
+            row_cells.push_back(Cell(row, i++, v, t, s, shared_string, style_sheet));
         }
         for (int i = row_cells.size(); i < ncols(); ++i) {
             row_cells.push_back(empty_cell);
@@ -481,11 +453,8 @@ struct Workbook
             }
         }
 
-        {
-            style_sheet = std::shared_ptr<StyleSheet>(
-                            new StyleSheet(load_doc("xl/styles.xml")));
-        }
-        set_localtz();
+        style_sheet = std::shared_ptr<StyleSheet>(
+                        new StyleSheet(load_doc("xl/styles.xml")));
     }
 
     inline
@@ -544,26 +513,6 @@ struct Workbook
             throw Exception("sheet_name=", name, ": not found.");
         }
         return sheet(sheet_rid_by_name[name]);
-    }
-
-    inline
-    void set_document_tz(int seconds) {
-        Cell::document_tzseconds = seconds;
-    }
-
-    inline
-    void set_format_tz(int seconds) {
-        Cell::format_tzseconds = seconds;
-    }
-
-    inline
-    void set_localtz() {
-        time_t local_time;
-        time(&local_time);
-        auto utc_tm = *gmtime(&local_time);
-        time_t utc_time = mktime(&utc_tm);
-        set_document_tz(local_time - utc_time);
-        set_format_tz(local_time - utc_time);
     }
 };
 

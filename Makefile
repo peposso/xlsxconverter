@@ -11,10 +11,12 @@ endif
 SRCS = $(wildcard *.cpp)
 OBJS = $(SRCS:%.cpp=%.o)
 LIBS = external/libzip.a external/libpugixml.a external/libyaml-cpp.a
-HEADERS = $(wildcard *.hpp) $(wildcard writers/*.hpp)
+HEADERS = $(wildcard *.hpp) $(wildcard writers/*.hpp) $(wildcard utils/*.hpp)
 
 CPPFLAGS = -g -std=c++11 -O3 -I. -I./external -I./external/ziplib/Source/ZipLib -I./external/pugixml -I./external/yaml-cpp/include
 LDFLAGS = -L./external -lzip -lpugixml -lyaml-cpp
+
+TEST_ARGS = dummy1.yaml --xls_search_path test --yaml_search_path test --output_base_path test --timezone +0900
 
 all: $(TARGET)
 
@@ -42,7 +44,7 @@ $(TARGET): $(OBJS) $(LIBS)
 
 test: $(TARGET)
 	ulimit -c unlimited && ( \
-		./$(TARGET) dummy1.yaml --xls_search_path test --yaml_search_path test --output_base_path test \
+		./$(TARGET) $(TEST_ARGS) \
 		|| (lldb -c `ls -t /cores/* | head -n1` --batch -o 'thread backtrace all' -o 'quit' && exit 1))
 
 clean:

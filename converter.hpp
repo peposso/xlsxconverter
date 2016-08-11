@@ -4,8 +4,9 @@
 #include "xlsx.hpp"
 #include "yaml_config.hpp"
 #include "arg_config.hpp"
-#include "writers/json.hpp"
-#include "util.hpp"
+
+#include "writers.hpp"
+#include "utils.hpp"
 
 namespace xlsxconverter {
 
@@ -20,6 +21,12 @@ struct Converter
     void run() {
         using namespace xlsx;
 
+        if (!config.arg_config.quiet) {
+            utils::log("target_sheet: %s", config.target_sheet_name);
+        }
+        if (!config.arg_config.quiet) {
+            utils::log("target_xls: %s", config.target_xls_path);
+        }
         auto book = Workbook(config.get_xls_path());
         auto& sheet = book.sheet_by_name(config.target_sheet_name);
 
@@ -30,12 +37,14 @@ struct Converter
         if (config.handler.type == YamlConfig::Handler::Type::kJson) {
             out = write<writers::JsonWriter>(sheet, column_mapping);
         } else {
-            throw util::exception("unknown handler.type=%d.", config.handler.type);
+            throw utils::exception("unknown handler.type=%d.", config.handler.type);
         }
 
         auto fo = std::ofstream(config.get_output_path().c_str(), std::ios::binary);
         fo << out;
-
+        if (!config.arg_config.quiet) {
+            utils::log("%s writed.", config.handler.path);
+        }
     }
 
     inline
@@ -44,13 +53,14 @@ struct Converter
         for (int k = 0; k < config.fields.size(); ++k) {
             auto& field = config.fields[k];
             bool found = false;
-            // util::log("i=%d cell=%s type=%d", i, cell.as_str(), cell.type);
+            // utils::log("i=%d cell=%s type=%d", i, cell.as_str(), cell.type);
             for (int i = 0; i < sheet.ncols(); ++i) {;
                 auto& cell = sheet.cell(config.row - 1, i);
-                // util::log("name=%s", field.name);
+                // utils::log("name=%s cell=%s", field.name, cell.as_str());
                 if (cell.as_str() == field.name) {
-                    if (util::contains(column_mapping, k)) {
-                        throw util::exception("field.column=%s is duplicated.", field.column);
+                    if (utils::contains(column_mapping, k)) {
+                        throw utils::exception("%s: field.column=%s is duplicated.",
+                                               config.target, field.column);
                     }
                     column_mapping.push_back(i);
                     found = true;
@@ -58,7 +68,8 @@ struct Converter
                 }
             }
             if (!found) {
-                throw util::exception("field{column=%s,name=%s} is NOT exists in xlsx.", field.column, field.name);
+                throw utils::exception("%s: field{column=%s,name=%s} is NOT exists in row=%d.", 
+                                       config.target, field.column, field.name, config.row);
             }
         }
         return column_mapping;
@@ -107,7 +118,7 @@ struct Converter
                 write_cell_default(writer, cell, field);
                 return;
             }
-            throw util::exception("%s: type error. cell.type=%s", config.target, cell.type_name());
+            throw utils::exception("%s: type error. cell.type=%s", config.target, cell.type_name());
         }
         else if (field.type == FT::kFloat)
         {
@@ -119,7 +130,7 @@ struct Converter
                 write_cell_default(writer, cell, field);
                 return;
             }
-            throw util::exception("%s: type error. cell.type=%s", config.target, cell.type_name());
+            throw utils::exception("%s: type error. cell.type=%s", config.target, cell.type_name());
         }
         else if (field.type == FT::kChar)
         {
@@ -132,8 +143,10 @@ struct Converter
         }
         else if (field.type == FT::kDateTime)
         {
+            auto tz = config.arg_config.tz_seconds;
             if (cell.type == CT::kDateTime) {
-                writer.field(field.column, cell.isoformat());
+                auto time = cell.as_time(tz);
+                writer.field(field.column, utils::dateutil::isoformat(time, tz));
                 return;
             }
             if (cell.type == CT::kEmpty && field.using_default) {
@@ -141,14 +154,18 @@ struct Converter
                 return;
             }
             if (cell.type == CT::kString) {
-                time_t time = util::parse_datetime(cell.as_str());
-                util::log("time=%ld", time);
-                writer.field(field.column, util::isoformat(time));
+                auto time = utils::dateutil::parse(cell.as_str(), tz);
+                if (time == utils::dateutil::ntime) {
+                    throw utils::exception("%s: date parse error. cell(%d,%d)=[%s]", 
+                                           config.target, cell.row, cell.col, cell.as_str());
+                }
+                writer.field(field.column, utils::dateutil::isoformat(time, tz));
                 return;
             }
-            throw util::exception("%s: type error. cell.type=%s", config.target, cell.type_name());
+            throw utils::exception("%s: type error. expected_type=datetime cell(%d,%d).type=%s", 
+                                   config.target, cell.row, cell.col, cell.type_name());
         }
-        throw util::exception("%s: unknown field.type=%d", field.type);
+        throw utils::exception("%s: unknown field.type=%d", field.type);
     }
 
     template<class T>

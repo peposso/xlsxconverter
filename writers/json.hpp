@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include "yaml_config.hpp"
+#include "utils.hpp"
 
 namespace xlsxconverter {
 namespace writers {
@@ -99,7 +100,7 @@ void JsonWriter::field<std::string>(const std::string& name, const std::string& 
             putchar_(c);
         }
     } else {
-        for (auto uc: util::u8to32iter(value)) {
+        for (auto uc: utils::u8to32iter(value)) {
             if (uc >= 0x80) {
                 buffer << "\\u" << std::hex << uc << std::dec;
             } else {

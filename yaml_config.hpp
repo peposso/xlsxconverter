@@ -8,7 +8,7 @@
 #include <boost/any.hpp>
 #include <yaml-cpp/yaml.h>
 
-#include "util.hpp"
+#include "utils.hpp"
 
 namespace xlsxconverter {
 
@@ -61,12 +61,12 @@ struct YamlConfig
                     return;
                 }
                 case YAML::NodeType::Sequence: {
-                    throw util::exception(
+                    throw utils::exception(
                         "%s: field=%s: bad default type. type=Sequence.",
                         path, column);
                 }
                 case YAML::NodeType::Map: {
-                    throw util::exception(
+                    throw utils::exception(
                         "%s: field=%s: bad default type. type=Map.",
                         path, column);
                 }
@@ -124,8 +124,8 @@ struct YamlConfig
     YamlConfig(const std::string& path, const ArgConfig& arg_config_)
     : handler(), arg_config(arg_config_)
     {
-        if (!util::fexists(path)) {
-            throw util::exception("yaml=%s does not exist.", path);
+        if (!utils::fexists(path)) {
+            throw utils::exception("yaml=%s does not exist.", path);
         }
         auto doc = YAML::LoadFile(path.c_str());
 

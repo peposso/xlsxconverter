@@ -30,4 +30,7 @@ Obj/**
 *.opensdf
 
 # target
-/xlsx2fix
+/xlsxconverter
+/xlsxconverter.exe
+
+.DS_Store
