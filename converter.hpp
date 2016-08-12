@@ -14,32 +14,40 @@ struct Converter
 {
     struct Validator {
         YamlConfig::Field& field;
-        std::unordered_set<std::string> strdata;
-        std::unordered_set<int64_t> intdata;
+        std::unordered_set<std::string> strset;
+        std::unordered_set<int64_t> intset;
 
         inline Validator(YamlConfig::Field& field) : field(field) {}
 
         inline bool operator()(std::string& val) {
-            if (!field.validate.unique) return true;
-            if (strdata.count(val) != 0) return false;
-            strdata.insert(val);
+            if (field.validate == boost::none) return true;
+            if (field.validate->unique) {
+                if (strset.count(val) != 0) return false;
+                strset.insert(val);
+            }
             return true;
         }
         inline bool operator()(int64_t& val) {
-            if (!field.validate.unique) return true;
-            if (intdata.count(val) != 0) return false;
-            intdata.insert(val);
+            if (field.validate == boost::none) return true;
+            if (field.validate->unique) {
+                if (intset.count(val) != 0) return false;
+                intset.insert(val);
+            }
             return true;
         }
     };
 
     YamlConfig& config;
-    std::vector<Validator> validators;
+    std::vector<boost::optional<Validator>> validators;
 
     inline
     Converter(YamlConfig& config_) : config(config_) {
         for (auto& field: config.fields) {
-            validators.emplace_back(field);
+            if (field.validate == boost::none) {
+                validators.push_back(boost::none);
+            } else {
+                validators.push_back(Validator(field));
+            }
         }
     }
 
@@ -131,7 +139,7 @@ struct Converter
     }
 
     template<class T>
-    void write_cell(T& writer, xlsx::Cell& cell, YamlConfig::Field& field, Validator& validator) {
+    void write_cell(T& writer, xlsx::Cell& cell, YamlConfig::Field& field, boost::optional<Validator>& validator) {
         using FT = YamlConfig::Field::Type;
         using CT = xlsx::Cell::Type;
 
@@ -139,7 +147,7 @@ struct Converter
         {
             if (cell.type == CT::kInt || cell.type == CT::kDouble) {
                 auto v = cell.as_int();
-                if (!validator(v)) {
+                if (validator != boost::none && !validator.value()(v)) {
                     throw utils::exception("%s: cell(%d,%d)=%ld: validation error.", 
                                            config.target, cell.row, cell.col, v);
                 }
@@ -171,7 +179,7 @@ struct Converter
                 return;
             }
             auto v = cell.as_str();
-            if (!validator(v)) {
+            if (validator != boost::none && !validator.value()(v)) {
                 throw utils::exception("%s: cell(%d,%d)=%s: validation error.", 
                                        config.target, cell.row, cell.col, v);
             }

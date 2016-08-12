@@ -10,7 +10,8 @@ _DIRNAME = path.dirname(__file__)
 
 HEADER_DIR = 'boost'
 HEADERS = [
-    'boost/any.hpp'
+    'boost/any.hpp',
+    'boost/optional.hpp',
 ]
 
 
@@ -38,12 +39,13 @@ def main():
 
     used = {}
     for line in depends.split('\n'):
-        if not re.search('^ +' + HEADER_DIR + '/', line):
+        if line == '':
             continue
         if line[-1] == '\\':
             line = line[:-1]
         for h in line.strip().split(' '):
-            used[h] = True
+            if h.startswith(HEADER_DIR + '/'):
+                used[h] = True
 
     for root, dirs, files in os.walk(HEADER_DIR):
         for file in files:
@@ -54,7 +56,6 @@ def main():
             os.remove(file)
 
     # remove empty dirs
-    print('removing empty dirs..')
     while True:
         removed = False
         for root, dirs, files in os.walk(HEADER_DIR):
