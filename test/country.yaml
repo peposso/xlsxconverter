@@ -1,0 +1,30 @@
+target: "xls:///sample.xlsx#都道府県"
+name: Preference
+row: 5
+handler:
+  path: out.json
+  type: json
+  sort_keys: true
+  indent: 4
+fields:
+- column: id
+  name: "ID"
+  type: int
+  validate:
+    unique: true
+
+- column: name
+  name: "名前"
+  type: char
+
+- column: name_kana
+  name: "なまえ"
+  type: char
+
+- column: capital
+  name: "県庁所在地"
+  type: char
+
+- column: capital_kana
+  name: "県庁所在地（かな）"
+  type: char

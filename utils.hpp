@@ -12,6 +12,17 @@ namespace xlsxconverter {
 namespace utils {
 
 inline
+std::vector<std::string> split(const std::string& str, char delim) {
+    auto ss = std::istringstream(str);
+
+    std::string item;
+    std::vector<std::string> result;
+    while (std::getline(ss, item, delim)) {
+        result.push_back(item);
+    }
+    return result;
+}
+inline
 bool fexists(const std::string& name) {
     struct stat statbuf;
     return ::stat(name.c_str(), &statbuf) == 0;
@@ -22,31 +33,38 @@ bool contains(const std::vector<T> vec, const T& value) {
     return std::find(vec.begin(), vec.end(), value) != vec.end();
 }
 
-template<class A>
-struct cstr_;
-template<>
-struct cstr_<std::string> { const char* value; cstr_(const std::string& a) : value(a.c_str()) {} };
-template<class A>
-struct cstr_ { A value; cstr_(const A& a) : value(a) {} };
+template<class T, class...A>
+void sscat_detail_(std::stringstream& ss, const T& t, const A&...a) {
+    ss << t;
+    sscat_detail_(a...);
+}
 
+template<class T>
+void sscat_detail_(std::stringstream& ss, const T& t) {
+    ss << t;
+}
 
 template<class...A>
-std::string format(const std::string& fmt, const A&...a) {
-    char buf[256] = {0};
-    snprintf(buf, 255, fmt.c_str(), cstr_<A>(a).value...);
-    buf[255] = '\0';
-    return std::string(buf);
+std::string sscat(const A&...a) {
+    auto ss = std::stringstream();
+    (void)(int[]){0, ((void)(ss << a), 0)... };
+    return ss.str();
 }
 
 struct exception : public std::runtime_error
 {
     template<class...A>
-    exception(A...a) : std::runtime_error(format(a...).c_str()) {}
+    exception(A...a) : std::runtime_error(sscat(a...).c_str()) {}
 };
 
 template<class...A>
-void log(const std::string& fmt, A...a) {
-    std::cerr << format(fmt, a...) << std::endl;
+void log(const A&...a) {
+    std::cout << sscat(a...) << std::endl;
+}
+
+template<class...A>
+void logerr(A...a) {
+    std::cerr << sscat(a...) << std::endl;
 }
 
 

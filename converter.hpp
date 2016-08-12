@@ -5,7 +5,7 @@
 #include "yaml_config.hpp"
 #include "arg_config.hpp"
 
-#include "writers.hpp"
+#include "handlers.hpp"
 #include "utils.hpp"
 
 namespace xlsxconverter {
@@ -20,7 +20,7 @@ struct Converter
         inline Validator(YamlConfig::Field& field) : field(field) {}
 
         inline bool operator()(std::string& val) {
-            if (field.validate == boost::none) return true;
+            if (!field.validate) return true;
             if (field.validate->unique) {
                 if (strset.count(val) != 0) return false;
                 strset.insert(val);
@@ -28,7 +28,7 @@ struct Converter
             return true;
         }
         inline bool operator()(int64_t& val) {
-            if (field.validate == boost::none) return true;
+            if (!field.validate) return true;
             if (field.validate->unique) {
                 if (intset.count(val) != 0) return false;
                 intset.insert(val);
@@ -39,6 +39,7 @@ struct Converter
 
     YamlConfig& config;
     std::vector<boost::optional<Validator>> validators;
+    std::vector<boost::optional<handlers::RelationMap&>> relations;
 
     inline
     Converter(YamlConfig& config_) : config(config_) {
@@ -48,37 +49,29 @@ struct Converter
             } else {
                 validators.push_back(Validator(field));
             }
+            if (field.relation == boost::none) {
+                relations.push_back(boost::none);
+            } else {
+                relations.push_back(handlers::RelationMap::find_cache(field.relation.value()));
+            }
         }
     }
 
-    inline
-    void run() {
-        using namespace xlsx;
-
+    template<class T>
+    void run(T& handler) {
         if (!config.arg_config.quiet) {
-            utils::log("target_sheet: %s", config.target_sheet_name);
+            utils::log("target_sheet: ", config.target_sheet_name);
         }
         if (!config.arg_config.quiet) {
-            utils::log("target_xls: %s", config.target_xls_path);
+            utils::log("target_xls: ", config.target_xls_path);
         }
-        auto book = Workbook(config.get_xls_path());
+        auto book = xlsx::Workbook(config.get_xls_path());
         auto& sheet = book.sheet_by_name(config.target_sheet_name);
 
         auto column_mapping = map_column(sheet);
 
         // process data
-        std::string out;
-        if (config.handler.type == YamlConfig::Handler::Type::kJson) {
-            out = write<writers::JsonWriter>(sheet, column_mapping);
-        } else {
-            throw utils::exception("unknown handler.type=%d.", config.handler.type);
-        }
-
-        auto fo = std::ofstream(config.get_output_path().c_str(), std::ios::binary);
-        fo << out;
-        if (!config.arg_config.quiet) {
-            utils::log("%s writed.", config.handler.path);
-        }
+        handle(handler, sheet, column_mapping);
     }
 
     inline
@@ -87,14 +80,12 @@ struct Converter
         for (int k = 0; k < config.fields.size(); ++k) {
             auto& field = config.fields[k];
             bool found = false;
-            // utils::log("i=%d cell=%s type=%d", i, cell.as_str(), cell.type);
             for (int i = 0; i < sheet.ncols(); ++i) {;
                 auto& cell = sheet.cell(config.row - 1, i);
-                // utils::log("name=%s cell=%s", field.name, cell.as_str());
+                // utils::log("i=", i, " name=",field.name, " cell=", cell.as_str());
                 if (cell.as_str() == field.name) {
-                    if (utils::contains(column_mapping, k)) {
-                        throw utils::exception("%s: field.column=%s is duplicated.",
-                                               config.target, field.column);
+                    if (utils::contains(column_mapping, i)) {
+                        throw utils::exception(config.target, ": field=", field.column, ": duplicated.");
                     }
                     column_mapping.push_back(i);
                     found = true;
@@ -102,17 +93,16 @@ struct Converter
                 }
             }
             if (!found) {
-                throw utils::exception("%s: field{column=%s,name=%s} is NOT exists in row=%d.", 
-                                       config.target, field.column, field.name, config.row);
+                throw utils::exception(config.target, ": row=", config.row,
+                                       ": field{column=", field.column, ",name=", field.name, "}: NOT exists.");
             }
         }
         return column_mapping;
     }
 
     template<class T>
-    std::string write(xlsx::Sheet& sheet, std::vector<int>& column_mapping) {
-        auto writer = T(config);
-        writer.begin();
+    void handle(T& handler, xlsx::Sheet& sheet, std::vector<int>& column_mapping) {
+        handler.begin();
         for (int j = config.row; j < sheet.nrows(); ++j) {
             bool is_empty_line = true;
             for (int i: column_mapping) {
@@ -124,66 +114,68 @@ struct Converter
             }
             if (is_empty_line) { continue; }
 
-            writer.begin_row();
+            handler.begin_row();
             for (int k = 0; k < column_mapping.size(); ++k) {
                 auto& field = config.fields[k];
                 auto i = column_mapping[k];
                 auto& cell = sheet.cell(j, i);
                 auto& validator = validators[k];
-                write_cell(writer, cell, field, validator);
+                auto& relation = relations[k];
+                handle_cell(handler, cell, field, validator, relation);
             }
-            writer.end_row();
+            handler.end_row();
         }
-        writer.end();
-        return writer.buffer.str();
+        handler.end();
+        handler.save();
     }
 
     template<class T>
-    void write_cell(T& writer, xlsx::Cell& cell, YamlConfig::Field& field, boost::optional<Validator>& validator) {
+    void handle_cell(T& handler, xlsx::Cell& cell, YamlConfig::Field& field, boost::optional<Validator>& validator, boost::optional<handlers::RelationMap&>& relation) {
         using FT = YamlConfig::Field::Type;
         using CT = xlsx::Cell::Type;
+
+        #define EXCEPT(...) utils::exception(config.target, ": field=", field.column, ": cell(", cell.row, ",", cell.col, \
+                                             "){value=", cell.as_str(), ",type=", cell.type_name(), "}: ", __VA_ARGS__)
 
         if (field.type == FT::kInt)
         {
             if (cell.type == CT::kInt || cell.type == CT::kDouble) {
                 auto v = cell.as_int();
                 if (validator != boost::none && !validator.value()(v)) {
-                    throw utils::exception("%s: cell(%d,%d)=%ld: validation error.", 
-                                           config.target, cell.row, cell.col, v);
+                    throw EXCEPT("validation error.");
                 }
-                writer.field(field.column, v);
+                handler.field(field, v);
                 return;
             }
             if (cell.type == CT::kEmpty && field.using_default) {
-                write_cell_default(writer, cell, field);
+                handle_cell_default(handler, cell, field);
                 return;
             }
-            throw utils::exception("%s: type error. cell.type=%s", config.target, cell.type_name());
+            throw EXCEPT("type error. expect int.");
         }
         else if (field.type == FT::kFloat)
         {
             if (cell.type == CT::kInt || cell.type == CT::kDouble) {
-                writer.field(field.column, cell.as_double());
+                handler.field(field, cell.as_double());
                 return;
             }
             if (cell.type == CT::kEmpty && field.using_default) {
-                write_cell_default(writer, cell, field);
+                handle_cell_default(handler, cell, field);
                 return;
             }
-            throw utils::exception("%s: type error. cell.type=%s", config.target, cell.type_name());
+            throw EXCEPT("type error. expect float.");
         }
         else if (field.type == FT::kChar)
         {
             if (cell.type == CT::kEmpty && field.using_default) {
-                write_cell_default(writer, cell, field);
+                handle_cell_default(handler, cell, field);
                 return;
             }
             auto v = cell.as_str();
             if (validator != boost::none && !validator.value()(v)) {
-                throw utils::exception("%s: cell(%d,%d)=%s: validation error.", 
-                                       config.target, cell.row, cell.col, v);
+                throw EXCEPT("validation error.");
             }
-            writer.field(field.column, v);
+            handler.field(field, v);
             return;
         }
         else if (field.type == FT::kDateTime)
@@ -191,41 +183,73 @@ struct Converter
             auto tz = config.arg_config.tz_seconds;
             if (cell.type == CT::kDateTime) {
                 auto time = cell.as_time(tz);
-                writer.field(field.column, utils::dateutil::isoformat(time, tz));
+                handler.field(field, utils::dateutil::isoformat(time, tz));
                 return;
             }
             if (cell.type == CT::kEmpty && field.using_default) {
-                write_cell_default(writer, cell, field);
+                handle_cell_default(handler, cell, field);
                 return;
             }
             if (cell.type == CT::kString) {
                 auto time = utils::dateutil::parse(cell.as_str(), tz);
                 if (time == utils::dateutil::ntime) {
-                    throw utils::exception("%s: date parse error. cell(%d,%d)=[%s]", 
-                                           config.target, cell.row, cell.col, cell.as_str());
+                    throw EXCEPT("parsing datetime error.");
                 }
-                writer.field(field.column, utils::dateutil::isoformat(time, tz));
+                handler.field(field, utils::dateutil::isoformat(time, tz));
                 return;
             }
-            throw utils::exception("%s: type error. expected_type=datetime cell(%d,%d).type=%s", 
-                                   config.target, cell.row, cell.col, cell.type_name());
+            throw EXCEPT("type error. expect float.");
         }
-        throw utils::exception("%s: unknown field.type=%d", field.type);
+        else if (field.type == FT::kForeignKey)
+        {
+            if (relation == boost::none) {
+                throw EXCEPT("requires relation map.");
+            }
+            if (field.using_default) {
+                throw EXCEPT("cant use relation + default at same time.");
+            }
+            auto& relmap = relation.value();
+            if (relmap.key_type == FT::kChar) {;
+                if (relmap.column_type == FT::kInt) {
+                    auto v = relmap.get<std::string, int64_t>(cell.as_str());
+                    handler.field(field, v);
+                    return;
+                } else {
+                    throw EXCEPT("usable relation type maps are (char -> int), (int -> int).");
+                }
+            } else if (relmap.key_type == FT::kInt) {
+                if (cell.type != CT::kInt && cell.type != CT::kDouble) {
+                    throw EXCEPT("not matched relation key_type.");
+                }
+                if (relmap.column_type == FT::kInt) {
+                    auto v = relmap.get<int64_t, int64_t>(cell.as_int());
+                    handler.field(field, v);
+                    return;
+                } else {
+                    throw EXCEPT("usable relation type maps are (char -> int), (int -> int).");
+                }
+            } else {
+                throw EXCEPT("usable relation type maps are (char -> int), (int -> int).");
+            }
+        }
+
+        throw EXCEPT("unknown field error.");
+        #undef EXCEPT
     }
 
     template<class T>
-    void write_cell_default(T& writer, xlsx::Cell& cell, YamlConfig::Field& field) {
+    void handle_cell_default(T& handler, xlsx::Cell& cell, YamlConfig::Field& field) {
         auto& v = field.default_value;
         if (v.type() == typeid(int64_t)) {
-            writer.field(field.column, boost::any_cast<int64_t>(v));
+            handler.field(field, boost::any_cast<int64_t>(v));
         } else if (v.type() == typeid(double)) {
-            writer.field(field.column, boost::any_cast<double>(v));
+            handler.field(field, boost::any_cast<double>(v));
         } else if (v.type() == typeid(bool)) {
-            writer.field(field.column, boost::any_cast<bool>(v));
+            handler.field(field, boost::any_cast<bool>(v));
         } else if (v.type() == typeid(std::string)) {
-            writer.field(field.column, boost::any_cast<std::string>(v));
+            handler.field(field, boost::any_cast<std::string>(v));
         } else if (v.type() == typeid(std::nullptr_t)) {
-            writer.field(field.column, boost::any_cast<std::nullptr_t>(v));
+            handler.field(field, boost::any_cast<std::nullptr_t>(v));
         }
     }
     

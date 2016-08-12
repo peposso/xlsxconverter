@@ -15,7 +15,7 @@ done
 echo "--------------------------------"
 echo "c++ xlsxconvert..."
 time for i in {1..30}; do
-    ./xlsxconverter dummy1.yaml --xls_search_path test --yaml_search_path test --output_base_path output
+    ./xlsxconverter dummy1.yaml --xls_search_path test --yaml_search_path test --output_base_path output --quiet
     rm output/dummy1.json
 done
 

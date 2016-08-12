@@ -30,18 +30,18 @@ fields:
   name: "生年月日"
   type: datetime
 
-# - column: preference_id
-#   name: "出身地"
-#   type: foreignkey
-#   relation:
-#     column: id
-#     from: 'country/preference.yaml'
-#     key: name
+- column: preference_id
+  name: "出身地"
+  type: foreignkey
+  relation:
+    column: id
+    from: 'country.yaml'
+    key: name
 
-# - column: current_preference_id
-#   name: "現住都道府県"
-#   type: foreignkey
-#   relation:
-#     column: id
-#     from: 'country/preference.yaml'
-#     key: name
+- column: current_preference_id
+  name: "現住都道府県"
+  type: foreignkey
+  relation:
+    column: id
+    from: 'country.yaml'
+    key: name

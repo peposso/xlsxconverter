@@ -26,10 +26,18 @@ struct YamlConfig
         bool sort_keys = false;
         bool allow_non_ascii = false;  // extension.
 
-        void parse_type(std::string typestr) {
-            if      (typestr == "json") { this->type = Type::kJson; }
-            else if (typestr == "csv") { this->type = Type::kCSV; }
-            else if (typestr == "hadler.djangofixture") { this->type = Type::kDjangoFixture; }
+        inline Handler() {}
+        inline Handler(YAML::Node node) {
+            auto typepath = utils::split(node["type"].as<std::string>(), '.');
+            auto typestr = typepath[typepath.size()-1];
+            if      (typestr == "json") type = Type::kJson;
+            else if (typestr == "csv") type = Type::kCSV;
+            else if (typestr == "djangofixture") type = Type::kDjangoFixture;
+            else throw utils::exception("unknown handler.type: ", typestr);
+            if (auto n = node["path"]) path = n.as<std::string>();
+            if (auto n = node["indent"]) indent = n.as<int>();
+            if (auto n = node["sort_keys"]) sort_keys = n.as<bool>();
+            if (auto n = node["allow_non_ascii"]) allow_non_ascii = n.as<bool>();
         }
     };
     struct Field {
@@ -38,51 +46,77 @@ struct YamlConfig
         };
         struct Validate {
             bool unique = false;
+            inline Validate(YAML::Node node) {
+                if (auto n = node["unique"]) unique = n.as<bool>();
+            }
+        };
+        struct Relation {
+            std::string column;
+            std::string from;
+            std::string key;
+            inline Relation(YAML::Node node) {
+                if (auto n = node["column"]) column = n.as<std::string>();
+                if (auto n = node["from"]) from = n.as<std::string>();
+                if (auto n = node["key"]) key = n.as<std::string>();
+            }
         };
         Type type;
         std::string column;
         std::string name;
         bool using_default = false;
         boost::any default_value;
-        boost::optional<Validate> validate;
+        boost::optional<Validate> validate = boost::none;
+        boost::optional<Relation> relation = boost::none;
+        int index = -1;
 
-        void parse_type(std::string typestr) {
-            if      (typestr == "int") { type = Type::kInt; }
-            else if (typestr == "float") { type = Type::kFloat; }
-            else if (typestr == "bool") { type = Type::kBool; }
-            else if (typestr == "char") { type = Type::kChar; }
-            else if (typestr == "datetime") { type = Type::kDateTime; }
-            else if (typestr == "foreignkey") { type = Type::kForeignKey; }
-        }
-        void parse_default(YAML::Node node, const std::string& path) {
-            if (!node.IsDefined()) {
-                using_default = false;
-                return;
+        inline Field(YAML::Node node) {
+            column = node["column"].as<std::string>();
+            name = node["name"].as<std::string>();
+
+            auto typestr = node["type"].as<std::string>();
+            if      (typestr == "int") type = Type::kInt;
+            else if (typestr == "float") type = Type::kFloat;
+            else if (typestr == "bool") type = Type::kBool;
+            else if (typestr == "char") type = Type::kChar;
+            else if (typestr == "datetime") type = Type::kDateTime;
+            else if (typestr == "foreignkey") type = Type::kForeignKey;
+            else throw utils::exception("unknown field.type: ", typestr);
+
+            if (auto n = node["default"]) {
+                using_default = true;
+                default_value = YamlConfig::node_to_any(n);
             }
-            using_default = true;
-            default_value = YamlConfig::node_to_any(node);
-            if (default_value.type() == typeid(utils::exception)) {
-                throw utils::exception(
-                    "%s: field=%s: bad default type.",
-                    path, column);
+
+            if (auto n = node["validate"]) {
+                validate = Validate(n);
+            }
+
+            if (auto n = node["relation"]) {
+                relation = Relation(n);
             }
         }
     };
 
+    std::string name;
     std::string target;
     std::string target_sheet_name;
     std::string target_xls_path;
     int row;
     Handler handler;
     std::vector<Field> fields;
+
     ArgConfig arg_config;
 
     inline
-    YamlConfig(const std::string& path, const ArgConfig& arg_config_)
-    : handler(), arg_config(arg_config_)
+    YamlConfig(const std::string& name_, const ArgConfig& arg_config_)
+    : name(name_), arg_config(arg_config_)
     {
+        std::string path = arg_config.yaml_search_path + "/" + name;
+        if (!arg_config.quiet) {
+            utils::log("target_yaml: ", name);
+        }
         if (!utils::fexists(path)) {
-            throw utils::exception("yaml=%s does not exist.", path);
+            throw utils::exception("yaml=", path, " does not exist.");
         }
         auto doc = YAML::LoadFile(path.c_str());
 
@@ -100,28 +134,19 @@ struct YamlConfig
             target_xls_path = target_xls_path.substr(0, pos);
         }
 
-        // handler;
-        if (auto node = doc["handler"]) {
-            if (auto n = node["path"]) handler.path = n.as<std::string>();
-            if (auto n = node["type"]) handler.parse_type(n.as<std::string>());
-            if (auto n = node["indent"]) handler.indent = n.as<int>();
-            if (auto n = node["sort_keys"]) handler.sort_keys = n.as<bool>();
-            if (auto n = node["allow_non_ascii"]) handler.allow_non_ascii = n.as<bool>();
+        // handler
+        if (auto node = doc["handler"]) {;
+            handler = Handler(node);
         }
 
         // fields
         fields.clear();
-        for (auto node: doc["fields"]) {;
-            auto field = Field();
-            field.parse_type(node["type"].as<std::string>());
-            field.column = node["column"].as<std::string>();
-            field.name = node["name"].as<std::string>();
-            field.parse_default(node["default"], path);
-            if (auto v = node["validate"]) {
-                field.validate = Field::Validate();
-                if (auto n = v["unique"]) field.validate->unique = n.as<bool>();
+        for (auto node: doc["fields"]) {
+            try {
+                fields.push_back(Field(node));
+            } catch (utils::exception& exc) {
+                throw utils::exception(path, ": ", exc.what());
             }
-            fields.push_back(std::move(field));
         }
 
         if (handler.sort_keys) {
@@ -129,6 +154,22 @@ struct YamlConfig
                 return a.column < b.column;
             });
         }
+
+        int index = 0;
+        for (auto& field: fields) {
+            field.index = index++;
+        }
+    }
+
+    inline
+    std::vector<Field::Relation> relations() {
+        auto vec = std::vector<Field::Relation>();
+        for (auto& field: fields) {
+            if (field.relation != boost::none) {
+                vec.push_back(field.relation.value());
+            }
+        }
+        return vec;
     }
 
     inline
@@ -149,10 +190,10 @@ struct YamlConfig
                 return nullptr;
             }
             case YAML::NodeType::Sequence: {
-                return utils::exception("");
+                throw utils::exception("bad default type: sequence.");
             }
             case YAML::NodeType::Map: {
-                return utils::exception("");
+                throw utils::exception("bad default type: map.");
             }
             case YAML::NodeType::Scalar: {
                 break;
@@ -182,9 +223,11 @@ struct YamlConfig
             // maybe. true, yes, false, no...
             return boolval;
         }
-        try {
-            return node.as<double>();
-        } catch (const YAML::BadConversion& exc) {}
+        if (strval.find('.') != std::string::npos) {
+            try {
+                return node.as<double>();
+            } catch (const YAML::BadConversion& exc) {}
+        }
         if (intable) {
             return intval;
         }

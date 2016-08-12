@@ -6,9 +6,9 @@
 #include "utils.hpp"
 
 namespace xlsxconverter {
-namespace writers {
+namespace handlers {
 
-struct JsonWriter
+struct JsonHandler
 {
     YamlConfig& config;
     std::stringstream buffer;
@@ -17,7 +17,7 @@ struct JsonWriter
     bool is_first_field = false;
 
     inline
-    JsonWriter(YamlConfig& config) : config(config) {}
+    JsonHandler(YamlConfig& config) : config(config) {}
 
     inline
     void begin() {
@@ -39,7 +39,7 @@ struct JsonWriter
     }
 
     inline
-    void write_name(const std::string& name) {
+    void write_key(const std::string& name) {
         if (is_first_field) {
             buffer << "\n";
             is_first_field = false;
@@ -50,8 +50,8 @@ struct JsonWriter
     }
 
     template<class T>
-    void field(const std::string& name, const T& value) {
-        write_name(name);
+    void field(YamlConfig::Field& field, const T& value) {
+        write_key(field.column);
         buffer << value;
     }
 
@@ -72,6 +72,15 @@ struct JsonWriter
     }
 
     inline
+    void save() {
+        auto fo = std::ofstream(config.get_output_path().c_str(), std::ios::binary);
+        fo << buffer.str();
+        if (!config.arg_config.quiet) {
+            utils::log(config.handler.path, " writed.");
+        }
+    }
+
+    inline
     void putchar_(char c) {
         switch (c) {
             case '"': { buffer << "\\\""; break; }
@@ -85,15 +94,15 @@ struct JsonWriter
 };
 
 template<>
-void JsonWriter::field<bool>(const std::string& name, const bool& value) {
-    write_name(name);
+void JsonHandler::field<bool>(YamlConfig::Field& field, const bool& value) {
+    write_key(field.column);
     buffer << (value ? "true" : "false");
 }
 
 
 template<>
-void JsonWriter::field<std::string>(const std::string& name, const std::string& value) {
-    write_name(name);
+void JsonHandler::field<std::string>(YamlConfig::Field& field, const std::string& value) {
+    write_key(field.column);
     buffer << "\"";
     if (config.handler.allow_non_ascii) {
         for (auto c: value) {
@@ -112,8 +121,8 @@ void JsonWriter::field<std::string>(const std::string& name, const std::string& 
 }
 
 template<>
-void JsonWriter::field<std::nullptr_t>(const std::string& name, const std::nullptr_t& value) {
-    write_name(name);
+void JsonHandler::field<std::nullptr_t>(YamlConfig::Field& field, const std::nullptr_t& value) {
+    write_key(field.column);
     buffer << "null";
 }
 
