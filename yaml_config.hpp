@@ -21,6 +21,7 @@ struct YamlConfig
             kNone, kJson, kCSV, kDjangoFixture,
         };
         Type type;
+        std::string type_name;
         std::string path;
         int indent = 4;
         bool sort_keys = false;
@@ -29,11 +30,11 @@ struct YamlConfig
         inline Handler() {}
         inline Handler(YAML::Node node) {
             auto typepath = utils::split(node["type"].as<std::string>(), '.');
-            auto typestr = typepath[typepath.size()-1];
-            if      (typestr == "json") type = Type::kJson;
-            else if (typestr == "csv") type = Type::kCSV;
-            else if (typestr == "djangofixture") type = Type::kDjangoFixture;
-            else throw utils::exception("unknown handler.type: ", typestr);
+            type_name = typepath[typepath.size()-1];
+            if      (type_name == "json") type = Type::kJson;
+            else if (type_name == "csv") type = Type::kCSV;
+            else if (type_name == "djangofixture") type = Type::kDjangoFixture;
+            else throw utils::exception("unknown handler.type: ", type_name);
             if (auto n = node["path"]) path = n.as<std::string>();
             if (auto n = node["indent"]) indent = n.as<int>();
             if (auto n = node["sort_keys"]) sort_keys = n.as<bool>();

@@ -29,11 +29,20 @@ int main(int argc, char** argv)
         }
 
         auto converter = Converter(yaml_config);
-        if (yaml_config.handler.type == YamlConfig::Handler::Type::kJson) {;
-            auto handler = handlers::JsonHandler(yaml_config);
-            converter.run(handler);
-        } else {
-            throw utils::exception(yaml_config.name, ": unknown handler. type=", yaml_config.handler.type);
+        switch (yaml_config.handler.type) {
+            case YamlConfig::Handler::Type::kJson: {
+                auto handler = handlers::JsonHandler(yaml_config);
+                converter.run(handler);
+                break;
+            }
+            case YamlConfig::Handler::Type::kDjangoFixture: {
+                auto handler = handlers::DjangoFixtureHandler(yaml_config);
+                converter.run(handler);
+                break;
+            }
+            default: {
+                throw utils::exception(yaml_config.name, ": unknown handler. type=", yaml_config.handler.type_name);
+            }
         }
     }
 

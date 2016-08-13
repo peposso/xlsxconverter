@@ -179,7 +179,10 @@ struct Cell
     Type type = Type::kEmpty;
 
     inline
-    Cell() : Cell(-1, -1, "", "", -1, nullptr, nullptr) {}
+    Cell() : Cell(-1, -1) {}
+
+    inline
+    Cell(int row, int col) : Cell(row, col, "", "", -1, nullptr, nullptr) {}
 
     inline
     Cell(int row, int col, std::string v_, std::string t, int s,
@@ -278,7 +281,7 @@ struct Sheet
     int ncols_ = -1;
     std::vector<std::vector<Cell>> cells_;
 
-    Cell empty_cell;
+    Cell ncell;
 
     Sheet() = default;
 
@@ -336,8 +339,8 @@ struct Sheet
     inline
     Cell& cell(int row, int col) {
         // row, col: 0-index
-        if (row < 0 || nrows() <= row) return empty_cell;
-        if (col < 0 || ncols() <= col) return empty_cell;
+        if (row < 0 || nrows() <= row) return ncell;
+        if (col < 0 || ncols() <= col) return ncell;
         if (cells_.size() <= row) cells_.resize(row + 1);
         if (col < cells_[row].size()) {
             return cells_[row][col];
@@ -353,7 +356,7 @@ struct Sheet
             row_cells.push_back(Cell(row, i++, v, t, s, shared_string, style_sheet));
         }
         for (int i = row_cells.size(); i < ncols(); ++i) {
-            row_cells.push_back(empty_cell);
+            row_cells.push_back(Cell(row, i));
         }
         return row_cells[col];
     }

@@ -66,20 +66,22 @@ struct JsonHandler
     }
 
     template<class T>
+    void write_value(const T& value) {
+        buffer << value;
+    }
+
+    template<class T>
     void field(YamlConfig::Field& field, const T& value) {
         write_key(field.column);
-        buffer << value;
+        write_value(value);
     }
 
     inline
     void end_row() {
-        if (is_first_field) {
-            buffer << '}';
-        } else if (is_first_row) {
-            buffer << indent << '}';
-        } else {
-            buffer << endl << indent << '}';
+        if (!is_first_field && !is_first_row) {
+            buffer << endl << indent;
         }
+        buffer << '}';
     }
 
     inline
@@ -110,15 +112,13 @@ struct JsonHandler
 };
 
 template<>
-void JsonHandler::field<bool>(YamlConfig::Field& field, const bool& value) {
-    write_key(field.column);
+void JsonHandler::write_value<bool>(const bool& value) {
     buffer << (value ? "true" : "false");
 }
 
 
 template<>
-void JsonHandler::field<std::string>(YamlConfig::Field& field, const std::string& value) {
-    write_key(field.column);
+void JsonHandler::write_value<std::string>(const std::string& value) {
     buffer << "\"";
     if (config.handler.allow_non_ascii) {
         for (auto c: value) {
@@ -137,8 +137,7 @@ void JsonHandler::field<std::string>(YamlConfig::Field& field, const std::string
 }
 
 template<>
-void JsonHandler::field<std::nullptr_t>(YamlConfig::Field& field, const std::nullptr_t& value) {
-    write_key(field.column);
+void JsonHandler::write_value<std::nullptr_t>(const std::nullptr_t& value) {
     buffer << "null";
 }
 
