@@ -1,0 +1,50 @@
+target: "xls:///sample.xlsx#dummy1"
+row: 5
+limit: 10
+handler:
+  path: dummy1.csv
+  type: csv
+  comment_row: 5
+  csv_field_type: true
+  csv_field_column: true
+  type_name_mapping: {char: string, datetime: string}
+
+fields:
+- column: id
+  name: "連番"
+  type: int
+  validate:
+    unique: true
+
+- column: country_code
+  name: "国籍"
+  type: char
+  default: "JP"
+
+- column: family_name
+  name: "姓"
+  type: char
+
+- column: first_name
+  name: "名"
+  type: char
+
+- column: birthday
+  name: "生年月日"
+  type: datetime
+
+- column: preference_id
+  name: "出身地"
+  type: foreignkey
+  relation:
+    column: id
+    from: 'country.yaml'
+    key: name
+
+- column: current_preference_id
+  name: "現住都道府県"
+  type: foreignkey
+  relation:
+    column: id
+    from: 'country.yaml'
+    key: name

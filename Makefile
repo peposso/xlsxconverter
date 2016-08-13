@@ -16,7 +16,10 @@ HEADERS = $(wildcard *.hpp) $(wildcard handlers/*.hpp) $(wildcard utils/*.hpp)
 CPPFLAGS = -g -std=c++11 -O3 -I. -I./external -I./external/ziplib/Source/ZipLib -I./external/pugixml -I./external/yaml-cpp/include
 LDFLAGS = -L./external -lzip -lpugixml -lyaml-cpp
 
-TEST_ARGS = dummy1csv.yaml --xls_search_path test --yaml_search_path test --output_base_path test --timezone +0900
+TEST1_ARGS = dummy1.yaml --xls_search_path test --yaml_search_path test --output_base_path test --timezone +0900
+TEST2_ARGS = dummy1fix.yaml --xls_search_path test --yaml_search_path test --output_base_path test --timezone +0900
+TEST3_ARGS = dummy1csv.yaml --xls_search_path test --yaml_search_path test --output_base_path test --timezone +0900
+TEST4_ARGS = dummy1lua.yaml --xls_search_path test --yaml_search_path test --output_base_path test --timezone +0900
 
 all: $(TARGET)
 
@@ -43,9 +46,10 @@ $(TARGET): $(OBJS) $(LIBS)
 
 
 test: $(TARGET)
-	ulimit -c unlimited && ( \
-		./$(TARGET) $(TEST_ARGS) \
-		|| (lldb -c `ls -t /cores/* | head -n1` --batch -o 'thread backtrace all' -o 'quit' && exit 1))
+	ulimit -c unlimited && (./$(TARGET) $(TEST1_ARGS) || (lldb -c `ls -t /cores/* | head -n1` --batch -o 'thread backtrace all' -o 'quit' && exit 1))
+	ulimit -c unlimited && (./$(TARGET) $(TEST2_ARGS) || (lldb -c `ls -t /cores/* | head -n1` --batch -o 'thread backtrace all' -o 'quit' && exit 1))
+	ulimit -c unlimited && (./$(TARGET) $(TEST3_ARGS) || (lldb -c `ls -t /cores/* | head -n1` --batch -o 'thread backtrace all' -o 'quit' && exit 1))
+	ulimit -c unlimited && (./$(TARGET) $(TEST4_ARGS) || (lldb -c `ls -t /cores/* | head -n1` --batch -o 'thread backtrace all' -o 'quit' && exit 1))
 
 clean:
 	cd external/pugixml && $(RM) *.o

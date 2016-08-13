@@ -23,12 +23,15 @@ struct DjangoFixtureHandler : public JsonHandler
         if (pk_index == -1) {
             throw utils::exception("id field is not found.");
         }
+        field_indent = indent + indent + indent;
     }
 
     inline
     void begin_row() {
         JsonHandler::begin_row();
-        buffer << endl << indent << indent << "\"fields\":" << space << '{';
+        buffer << endl << indent << indent;
+        write_key("fields");
+        buffer << '{';
         pk_strvalue.clear();
         pk_intvalue = -1;
     }
@@ -39,7 +42,8 @@ struct DjangoFixtureHandler : public JsonHandler
             buffer << endl << indent << indent;
         }
         buffer << "}," << endl;
-        buffer << indent << indent << "\"pk\":" << space;
+        buffer << indent << indent;
+        write_key("pk");
         if (pk_intvalue > -1) {
             write_value(pk_intvalue);
         } else if (!pk_strvalue.empty()) {
@@ -48,17 +52,6 @@ struct DjangoFixtureHandler : public JsonHandler
             throw utils::exception("pk column not found.");
         }
         buffer << endl << indent << "}";
-    }
-
-    inline
-    void write_key(const std::string& name) {
-        if (is_first_field) {
-            buffer << endl;
-            is_first_field = false;
-        } else {
-            buffer << ',' << endl;
-        }
-        buffer << indent << indent << indent << '"' << name << "\":" << space;
     }
 
     template<class T, DISABLE_ANY(T, int64_t, std::string)>
@@ -77,8 +70,7 @@ struct DjangoFixtureHandler : public JsonHandler
     template<class T>
     void field(YamlConfig::Field& field, const T& value) {
         if (comment) return;
-        write_key(field.column);
-        write_value(value);
+        JsonHandler::field(field, value);
         if (field.index == pk_index) {
             set_pk(value);
         }
