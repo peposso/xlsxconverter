@@ -44,14 +44,16 @@ struct DjangoFixtureHandler : public JsonHandler
         buffer << indent << indent << indent << '"' << name << "\":" << space;
     }
 
-    template<class T>
-    void set_pk(T t, ...) {
+    template<class T, DISABLE_ANY(T, int64_t, std::string)>
+    void set_pk(const T& v) {
         throw utils::exception("bad pk type");
     }
-    void set_pk(int64_t v, boost::type<int64_t>) {
+    template<class T, ENABLE_ANY(T, int64_t)>
+    void set_pk(const T& v) {
         pk_intvalue = v;
     }
-    void set_pk(const std::string& v, boost::type<std::string>) {
+    template<class T, ENABLE_ANY(T, std::string)>
+    void set_pk(const T& v) {
         pk_strvalue = v;
     }
 
@@ -60,7 +62,7 @@ struct DjangoFixtureHandler : public JsonHandler
         write_key(field.column);
         write_value(value);
         if (field.index == pk_index) {
-            set_pk(value, boost::type<T>());
+            set_pk(value);
         }
     }
 

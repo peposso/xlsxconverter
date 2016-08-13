@@ -11,6 +11,31 @@
 namespace xlsxconverter {
 namespace utils {
 
+template<bool B, class T, class F>
+using conditional_t = typename std::conditional<B,T,F>::type;
+
+template<bool B>
+using enable_if_t = typename std::enable_if<B, std::nullptr_t>::type;
+
+template<size_t I, class T>
+using tuple_element_t = typename std::tuple_element<I, T>::type;
+
+template<class T, class Tuple, size_t I>
+struct anytypeof_ {
+    static const bool value = std::is_same<T, tuple_element_t<I, Tuple>>::value ? true : anytypeof_<T, Tuple, I-1>::value;
+};
+template<class T, class Tuple>
+struct anytypeof_<T, Tuple, 0> {
+    static const bool value = std::is_same<T, tuple_element_t<0, Tuple>>::value;
+};
+template<class T, class...A>
+struct anytypeof : anytypeof_<T, std::tuple<A...> , sizeof...(A)-1> {};
+
+
+#define DISABLE_ANY(...) xlsxconverter::utils::enable_if_t<!xlsxconverter::utils::anytypeof<__VA_ARGS__>::value> = nullptr
+#define ENABLE_ANY(...) xlsxconverter::utils::enable_if_t<xlsxconverter::utils::anytypeof<__VA_ARGS__>::value> = nullptr
+
+
 inline
 std::vector<std::string> split(const std::string& str, char delim) {
     auto ss = std::istringstream(str);

@@ -65,9 +65,38 @@ struct JsonHandler
         buffer << indent << indent << '"' << name << "\":" << space;
     }
 
-    template<class T>
-    void write_value(const T& value) {
+    template<class T, ENABLE_ANY(T, int64_t, double)>
+    void write_value(const T& value, ...) {
         buffer << value;
+    }
+
+    template<class T, ENABLE_ANY(T, bool)>
+    void write_value(const T& value) {
+        buffer << (value ? "true" : "false");
+    }
+
+    template<class T, ENABLE_ANY(T, std::string)>
+    void write_value(const T& value) {
+        buffer << "\"";
+        if (config.handler.allow_non_ascii) {
+            for (auto c: value) {
+                putchar_(c);
+            }
+        } else {
+            for (auto uc: utils::u8to32iter(value)) {
+                if (uc >= 0x80) {
+                    buffer << "\\u" << std::hex << uc << std::dec;
+                } else {
+                    putchar_(uc);
+                }
+            }
+        }
+        buffer << '"';
+    }
+
+    template<class T, ENABLE_ANY(T, std::nullptr_t)>
+    void write_value(const T& value) {
+        buffer << "null";
     }
 
     template<class T>
