@@ -16,8 +16,24 @@ struct JsonHandler
     bool is_first_row = false;
     bool is_first_field = false;
 
+    std::string indent;
+    std::string space;
+    std::string endl;
+
     inline
-    JsonHandler(YamlConfig& config) : config(config) {}
+    JsonHandler(YamlConfig& config) 
+        : config(config)
+    {
+        if (config.handler.indent < 0) {
+            indent = space = endl = "";
+        } else {
+            for (int i = 0; i < config.handler.indent; ++i) {
+                indent.push_back(' ');
+            }
+            if (config.handler.indent > 0) space = " ";
+            endl = "\n";
+        }
+    }
 
     inline
     void begin() {
@@ -29,24 +45,24 @@ struct JsonHandler
     inline
     void begin_row() {
         if (is_first_row) {
-            buffer << "\n";
+            buffer << endl;
             is_first_row = false;
         } else {
-            buffer << ",\n";
+            buffer << ',' << endl;
         }
-        buffer << "    {";
+        buffer << indent << '{';
         is_first_field = true;
     }
 
     inline
     void write_key(const std::string& name) {
         if (is_first_field) {
-            buffer << "\n";
+            buffer << endl;
             is_first_field = false;
         } else {
-            buffer << ",\n";
+            buffer << ',' << endl;
         }
-        buffer << "        \"" << name << "\": ";
+        buffer << indent << indent << '"' << name << "\":" << space;
     }
 
     template<class T>
@@ -58,17 +74,17 @@ struct JsonHandler
     inline
     void end_row() {
         if (is_first_field) {
-            buffer << "}";
+            buffer << '}';
         } else if (is_first_row) {
-            buffer << "    }";
+            buffer << indent << '}';
         } else {
-            buffer << "\n    }";
+            buffer << endl << indent << '}';
         }
     }
 
     inline
     void end() {
-        buffer << "\n]\n";
+        buffer << endl << "]\n";
     }
 
     inline
@@ -117,7 +133,7 @@ void JsonHandler::field<std::string>(YamlConfig::Field& field, const std::string
             }
         }
     }
-    buffer << "\"";
+    buffer << '"';
 }
 
 template<>

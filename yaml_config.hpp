@@ -98,6 +98,7 @@ struct YamlConfig
     };
 
     std::string name;
+    std::string path;
     std::string target;
     std::string target_sheet_name;
     std::string target_xls_path;
@@ -108,19 +109,30 @@ struct YamlConfig
     ArgConfig arg_config;
 
     inline
-    YamlConfig(const std::string& name_, const ArgConfig& arg_config_)
-    : name(name_), arg_config(arg_config_)
+    YamlConfig(const std::string& path_, const ArgConfig& arg_config_)
+    : path(path_), arg_config(arg_config_)
     {
-        std::string path = arg_config.yaml_search_path + "/" + name;
+        std::string fullpath = arg_config.yaml_search_path + "/" + path;
         if (!arg_config.quiet) {
-            utils::log("target_yaml: ", name);
+            utils::log("target_yaml: ", path);
         }
-        if (!utils::fexists(path)) {
-            throw utils::exception("yaml=", path, " does not exist.");
+        if (!utils::fexists(fullpath)) {
+            throw utils::exception("yaml=", fullpath, " does not exist.");
         }
-        auto doc = YAML::LoadFile(path.c_str());
+        auto doc = YAML::LoadFile(fullpath.c_str());
 
         // base.
+        if (doc["name"]) {
+            name = doc["name"].as<std::string>();
+        } else {
+            auto p = path.rfind('.');
+            if (p != std::string::npos) {
+                name = path.substr(0, p);
+            } else {
+                name = path;
+            }
+            for (auto& c: name) if (c == '/') c = '_';
+        }
         target = doc["target"].as<std::string>();
         row = doc["row"].as<int>();
         if (target.substr(0, 7) == "xls:///") {
