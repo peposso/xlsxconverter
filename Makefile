@@ -16,7 +16,7 @@ HEADERS = $(wildcard *.hpp) $(wildcard handlers/*.hpp) $(wildcard utils/*.hpp)
 CPPFLAGS = -g -std=c++11 -O3 -I. -I./external -I./external/ziplib/Source/ZipLib -I./external/pugixml -I./external/yaml-cpp/include
 LDFLAGS = -L./external -lzip -lpugixml -lyaml-cpp
 
-TEST_ARGS = dummy1.yaml --xls_search_path test --yaml_search_path test --output_base_path test --timezone +0900
+TEST_ARGS = dummy1csv.yaml --xls_search_path test --yaml_search_path test --output_base_path test --timezone +0900
 
 all: $(TARGET)
 

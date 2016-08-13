@@ -40,6 +40,11 @@ int main(int argc, char** argv)
                 converter.run(handler);
                 break;
             }
+            case YamlConfig::Handler::Type::kCSV: {
+                auto handler = handlers::CSVHandler(yaml_config);
+                converter.run(handler);
+                break;
+            }
             default: {
                 throw utils::exception(yaml_config.name, ": unknown handler. type=", yaml_config.handler.type_name);
             }

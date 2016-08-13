@@ -34,6 +34,23 @@ struct DjangoFixtureHandler : public JsonHandler
     }
 
     inline
+    void end_row() {
+        if (!is_first_field && !is_first_row) {
+            buffer << endl << indent << indent;
+        }
+        buffer << "}," << endl;
+        buffer << indent << indent << "\"pk\":" << space;
+        if (pk_intvalue > -1) {
+            write_value(pk_intvalue);
+        } else if (!pk_strvalue.empty()) {
+            write_value(pk_strvalue);
+        } else {
+            throw utils::exception("pk column not found.");
+        }
+        buffer << endl << indent << "}";
+    }
+
+    inline
     void write_key(const std::string& name) {
         if (is_first_field) {
             buffer << endl;
@@ -59,28 +76,12 @@ struct DjangoFixtureHandler : public JsonHandler
 
     template<class T>
     void field(YamlConfig::Field& field, const T& value) {
+        if (comment) return;
         write_key(field.column);
         write_value(value);
         if (field.index == pk_index) {
             set_pk(value);
         }
-    }
-
-    inline
-    void end_row() {
-        if (!is_first_field && !is_first_row) {
-            buffer << endl << indent << indent;
-        }
-        buffer << "}," << endl;
-        buffer << indent << indent << "\"pk\":" << space;
-        if (pk_intvalue > -1) {
-            write_value(pk_intvalue);
-        } else if (!pk_strvalue.empty()) {
-            write_value(pk_strvalue);
-        } else {
-            throw utils::exception("pk column not found.");
-        }
-        buffer << endl << indent << "}";
     }
 };
 

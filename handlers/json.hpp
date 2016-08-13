@@ -13,6 +13,7 @@ struct JsonHandler
     YamlConfig& config;
     std::stringstream buffer;
 
+    bool comment = false;
     bool is_first_row = false;
     bool is_first_field = false;
 
@@ -43,6 +44,16 @@ struct JsonHandler
     }
 
     inline
+    void begin_comment_row() {
+        comment = true;
+    }
+
+    inline
+    void end_comment_row() {
+        comment = false;
+    }
+
+    inline
     void begin_row() {
         if (is_first_row) {
             buffer << endl;
@@ -52,6 +63,14 @@ struct JsonHandler
         }
         buffer << indent << '{';
         is_first_field = true;
+    }
+
+    inline
+    void end_row() {
+        if (!is_first_field && !is_first_row) {
+            buffer << endl << indent;
+        }
+        buffer << '}';
     }
 
     inline
@@ -101,16 +120,9 @@ struct JsonHandler
 
     template<class T>
     void field(YamlConfig::Field& field, const T& value) {
+        if (comment) return;
         write_key(field.column);
         write_value(value);
-    }
-
-    inline
-    void end_row() {
-        if (!is_first_field && !is_first_row) {
-            buffer << endl << indent;
-        }
-        buffer << '}';
     }
 
     inline
@@ -139,36 +151,6 @@ struct JsonHandler
         }
     }
 };
-
-template<>
-void JsonHandler::write_value<bool>(const bool& value) {
-    buffer << (value ? "true" : "false");
-}
-
-
-template<>
-void JsonHandler::write_value<std::string>(const std::string& value) {
-    buffer << "\"";
-    if (config.handler.allow_non_ascii) {
-        for (auto c: value) {
-            putchar_(c);
-        }
-    } else {
-        for (auto uc: utils::u8to32iter(value)) {
-            if (uc >= 0x80) {
-                buffer << "\\u" << std::hex << uc << std::dec;
-            } else {
-                putchar_(uc);
-            }
-        }
-    }
-    buffer << '"';
-}
-
-template<>
-void JsonHandler::write_value<std::nullptr_t>(const std::nullptr_t& value) {
-    buffer << "null";
-}
 
 
 }

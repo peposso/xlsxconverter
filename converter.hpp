@@ -103,6 +103,17 @@ struct Converter
     template<class T>
     void handle(T& handler, xlsx::Sheet& sheet, std::vector<int>& column_mapping) {
         handler.begin();
+        if (config.handler.comment_row != boost::none) {
+            int row = config.handler.comment_row.value() - 1;
+            handler.begin_comment_row();
+            for (int k = 0; k < column_mapping.size(); ++k) {
+                auto& field = config.fields[k];
+                auto i = column_mapping[k];
+                auto& cell = sheet.cell(row, i);
+                handler.field(field, cell.as_str());
+            }
+            handler.end_comment_row();
+        }
         for (int j = config.row; j < sheet.nrows(); ++j) {
             bool is_empty_line = true;
             for (int i: column_mapping) {

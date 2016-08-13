@@ -18,6 +18,8 @@ struct RelationMap
     std::string key;
     YamlConfig::Field::Type column_type;
     YamlConfig::Field::Type key_type;
+    std::string column_type_name;
+    std::string key_type_name;
     // key -> colmun
 
     int column_index = -1;
@@ -28,6 +30,7 @@ struct RelationMap
 
     bool current_column_handled = false;
     bool current_key_handled = false;
+    bool comment = false;
 
     int64_t     current_column_intvalue;
     std::string current_column_strvalue;
@@ -51,12 +54,14 @@ struct RelationMap
             utils::exception("relation column type must be int.");
         }
         column_type = column_field.type;
+        column_type_name = column_field.type_name;
         
         auto& key_field = config.fields[key_index];
         if (key_field.type != YamlConfig::Field::Type::kInt || key_field.type != YamlConfig::Field::Type::kChar) {
             utils::exception("relation key type must be int or char.");
         }
         key_type = key_field.type;
+        key_type_name = key_field.type_name;
     }
 
     inline static
@@ -88,17 +93,22 @@ struct RelationMap
     V get(const K& k) { throw utils::exception("invalid type"); }
 
     inline
-    void begin() {
+    void begin() {}
+
+    inline
+    void begin_comment_row() {
+        comment = true;
+    }
+
+    inline
+    void end_comment_row() {
+        comment = false;
     }
 
     inline
     void begin_row() {
         current_key_handled = false;
         current_column_handled = false;
-    }
-
-    template<class T>
-    void field(YamlConfig::Field& field, const T& value) {
     }
 
     inline
@@ -116,6 +126,9 @@ struct RelationMap
         }
     }
 
+    template<class T>
+    void field(YamlConfig::Field& field, const T& value) {}
+
     inline
     void end() {}
 
@@ -128,6 +141,7 @@ std::vector<RelationMap> RelationMap::cache_;
 
 template<>
 void RelationMap::field<std::string>(YamlConfig::Field& field, const std::string& value) {
+    if (comment) return;
     if (field.index == column_index) {
         current_column_strvalue = value;
         current_column_handled = true;
@@ -139,6 +153,7 @@ void RelationMap::field<std::string>(YamlConfig::Field& field, const std::string
 
 template<>
 void RelationMap::field<int64_t>(YamlConfig::Field& field, const int64_t& value) {
+    if (comment) return;
     if (field.index == column_index) {
         current_column_intvalue = value;
         current_column_handled = true;

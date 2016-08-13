@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <unordered_map>
 #include <unordered_set>
 
 #include <boost/optional.hpp>
@@ -24,8 +25,14 @@ struct YamlConfig
         std::string type_name;
         std::string path;
         int indent = 4;
+        // for json
         bool sort_keys = false;
-        bool allow_non_ascii = false;  // extension.
+        bool allow_non_ascii = false;
+        // for csv
+        boost::optional<int> comment_row = boost::none;
+        boost::optional<std::unordered_map<std::string, std::string>> type_name_mapping = boost::none;
+        bool csv_field_type = false;
+        bool csv_field_column = false;
 
         inline Handler() {}
         inline Handler(YAML::Node node) {
@@ -39,6 +46,17 @@ struct YamlConfig
             if (auto n = node["indent"]) indent = n.as<int>();
             if (auto n = node["sort_keys"]) sort_keys = n.as<bool>();
             if (auto n = node["allow_non_ascii"]) allow_non_ascii = n.as<bool>();
+
+            if (auto n = node["comment_row"]) comment_row = n.as<int>();
+            if (auto n = node["type_name_mapping"]) {
+                auto map = std::unordered_map<std::string, std::string>();
+                for (const auto& it: n) {
+                    map.insert(std::make_pair(it.first.as<std::string>(), it.second.as<std::string>()));
+                }
+                type_name_mapping = std::move(map);
+            }
+            if (auto n = node["csv_field_type"]) csv_field_type = n.as<bool>();
+            if (auto n = node["csv_field_column"]) csv_field_column = n.as<bool>();
         }
     };
     struct Field {
@@ -61,6 +79,7 @@ struct YamlConfig
                 if (auto n = node["key"]) key = n.as<std::string>();
             }
         };
+        std::string type_name;
         Type type;
         std::string column;
         std::string name;
@@ -74,14 +93,14 @@ struct YamlConfig
             column = node["column"].as<std::string>();
             name = node["name"].as<std::string>();
 
-            auto typestr = node["type"].as<std::string>();
-            if      (typestr == "int") type = Type::kInt;
-            else if (typestr == "float") type = Type::kFloat;
-            else if (typestr == "bool") type = Type::kBool;
-            else if (typestr == "char") type = Type::kChar;
-            else if (typestr == "datetime") type = Type::kDateTime;
-            else if (typestr == "foreignkey") type = Type::kForeignKey;
-            else throw utils::exception("unknown field.type: ", typestr);
+            type_name = node["type"].as<std::string>();
+            if      (type_name == "int") type = Type::kInt;
+            else if (type_name == "float") type = Type::kFloat;
+            else if (type_name == "bool") type = Type::kBool;
+            else if (type_name == "char") type = Type::kChar;
+            else if (type_name == "datetime") type = Type::kDateTime;
+            else if (type_name == "foreignkey") type = Type::kForeignKey;
+            else throw utils::exception("unknown field.type: ", type_name);
 
             if (auto n = node["default"]) {
                 using_default = true;
