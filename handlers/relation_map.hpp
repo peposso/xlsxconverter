@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <mutex>
 
 #include "yaml_config.hpp"
 #include "utils.hpp"
@@ -13,6 +14,7 @@ namespace handlers {
 struct RelationMap
 {
     static std::vector<RelationMap> cache_;
+    static std::mutex cache_mtx;
 
     YamlConfig& config;
     std::string column;
@@ -71,6 +73,7 @@ struct RelationMap
 
     inline static
     bool has_cache(YamlConfig::Field::Relation& relation) {
+        std::lock_guard<std::mutex> lock(cache_mtx);
         for (auto& rel: cache_) {
             if (rel == relation) return true;
         }
@@ -79,6 +82,7 @@ struct RelationMap
 
     inline static
     RelationMap& find_cache(YamlConfig::Field::Relation& relation) {
+        std::lock_guard<std::mutex> lock(cache_mtx);
         for (auto& rel: cache_) {
             if (rel == relation) return rel;
         }
@@ -87,6 +91,7 @@ struct RelationMap
 
     inline static
     void store_cache(RelationMap relmap) {
+        std::lock_guard<std::mutex> lock(cache_mtx);
         cache_.push_back(std::move(relmap));
     }
 
@@ -142,6 +147,7 @@ struct RelationMap
 };
 
 std::vector<RelationMap> RelationMap::cache_;
+std::mutex RelationMap::cache_mtx;
 
 
 template<>

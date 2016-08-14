@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <algorithm>
 #include <iterator>
+#include <atomic>
 
 // macros
 #define XLSXCONVERTER_UTILS_DISABLE_ANY(...) \
@@ -67,10 +68,10 @@ template<class...A>
 void nop(A...) {}
 
 template<class...A>
-std::string sscat(const A&...a) {
+std::string sscat(A...a) {
     auto ss = std::stringstream();
     nop((ss << a, 0) ...);
-    return ss.str();
+    return std::move(ss.str());
 }
 
 struct exception : public std::runtime_error
@@ -79,14 +80,31 @@ struct exception : public std::runtime_error
     exception(A...a) : std::runtime_error(sscat(a...).c_str()) {}
 };
 
+struct spinlock
+{
+  std::atomic_flag state_;
+  inline spinlock() : state_ ATOMIC_FLAG_INIT {}
+  inline void lock() {
+    while (state_.test_and_set(std::memory_order_acquire));
+  }
+  inline void unlock() {
+    state_.clear(std::memory_order_release);
+  }
+};
+spinlock logging_lock;
+
 template<class...A>
 void log(const A&...a) {
-    std::cout << sscat(a...) << std::endl;
+    auto s = sscat(a..., '\n');
+    std::lock_guard<spinlock> lock(logging_lock);
+    std::cout << s;
 }
 
 template<class...A>
 void logerr(A...a) {
-    std::cerr << sscat(a...) << std::endl;
+    auto s = sscat(a..., '\n');
+    std::lock_guard<spinlock> lock(logging_lock);
+    std::cerr << s;
 }
 
 

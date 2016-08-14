@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <thread>
 #include "utils.hpp"
 
 #define EXCEPTION XLSXCONVERTER_UTILS_EXCEPTION
@@ -16,6 +17,7 @@ struct ArgConfig
     std::string output_base_path;
     bool quiet;
     int tz_seconds;
+    int jobs;
     std::vector<std::string> targets;
 
     std::vector<std::string> args;
@@ -26,13 +28,13 @@ struct ArgConfig
           yaml_search_path("."),
           output_base_path("."),
           quiet(false),
-          tz_seconds(utils::dateutil::local_tz_seconds())
+          tz_seconds(utils::dateutil::local_tz_seconds()),
+          jobs(std::thread::hardware_concurrency())
     {
         name = argc > 0 ? argv[0] : "";
         for (int i = 1; i < argc; ++i) {
             args.push_back(argv[i]);
         }
-
 
         auto it = args.begin();
         for (auto it = args.begin(); it != args.end(); ++it) {
@@ -47,6 +49,20 @@ struct ArgConfig
                     continue;
                 } else if (arg == "--output_base_path" && !last) {
                     output_base_path = *++it;
+                    continue;
+                } else if (arg == "--jobs" && !last) {
+                    auto s = *++it;
+                    if (s == "full") {
+                        jobs = std::thread::hardware_concurrency();
+                    } else if (s == "half") {
+                        jobs = std::thread::hardware_concurrency() / 2;
+                    } else if (s == "quarter") {
+                        jobs = std::thread::hardware_concurrency() / 4;
+                    } else {
+                        jobs = std::stoi(s);
+                    }
+                    jobs = jobs < 1 ? 1 : jobs;
+                    jobs = jobs > 20 ? 20 : jobs;
                     continue;
                 } else if (arg == "--quiet") {
                     quiet = true;
@@ -77,6 +93,7 @@ struct ArgConfig
         auto ss = std::stringstream();
         ss <<
             usage  << " [--quiet]" << std::endl <<
+            indent << " [--jobs <'full'|'half'|'quarter'|int>]" << std::endl <<
             indent << " [--xls_search_path <path>]" << std::endl <<
             indent << " [--yaml_search_path <path>]" << std::endl <<
             indent << " [--output_base_path <path>]" << std::endl <<

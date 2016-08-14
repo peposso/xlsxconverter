@@ -1,3 +1,7 @@
+#include <functional>
+#include <thread>
+#include <mutex>
+
 #include "arg_config.hpp"
 #include "yaml_config.hpp"
 #include "handlers.hpp"
@@ -6,6 +10,9 @@
 #define EXCEPTION XLSXCONVERTER_UTILS_EXCEPTION
 
 namespace {
+
+std::mutex relation_mutex_map_mutex;
+std::unordered_map<std::string, std::mutex> relation_mutex_map;
 
 void process(std::string target, xlsxconverter::ArgConfig& arg_config) {
     using namespace xlsxconverter;
@@ -16,15 +23,26 @@ void process(std::string target, xlsxconverter::ArgConfig& arg_config) {
     auto yaml_config = YamlConfig(target, arg_config);
 
     // solve relations
-    for (auto rel: yaml_config.relations()) {
-        if (handlers::RelationMap::has_cache(rel)) continue;
-        if (!arg_config.quiet) {
-            utils::log("relation_yaml: ", rel.from);
+    auto relations = yaml_config.relations();
+    if (!relations.empty()) {
+        for (auto rel: relations) {
+            if (handlers::RelationMap::has_cache(rel)) continue;
+            auto key = rel.column + ':' + rel.from + ':' + rel.key;
+            boost::optional<std::mutex&> mtx;
+            {
+                std::lock_guard<std::mutex> lock(relation_mutex_map_mutex);
+                mtx = relation_mutex_map[key];
+            }
+            std::lock_guard<std::mutex> lock(mtx.value());
+            if (handlers::RelationMap::has_cache(rel)) continue;
+            if (!arg_config.quiet) {
+                utils::log("relation_yaml: ", rel.from);
+            }
+            auto rel_yaml_config = YamlConfig(rel.from, arg_config);
+            auto relmap = handlers::RelationMap(rel, rel_yaml_config);
+            Converter(rel_yaml_config).run(relmap);
+            handlers::RelationMap::store_cache(std::move(relmap));
         }
-        auto rel_yaml_config = YamlConfig(rel.from, arg_config);
-        auto relmap = handlers::RelationMap(rel, rel_yaml_config);
-        Converter(rel_yaml_config).run(relmap);
-        handlers::RelationMap::store_cache(std::move(relmap));
     }
 
     auto converter = Converter(yaml_config);
@@ -77,8 +95,43 @@ int main(int argc, char** argv)
     }
 
     try {
-        for (auto target: arg_config->targets) {
-            process(target, arg_config.value());
+        std::list<std::string> targets;
+        for (auto& target: arg_config->targets) {
+            targets.push_back(target);
+        }
+        auto& arg_config_ref = arg_config.value();
+        std::mutex target_mtx;
+        std::mutex relation_mtx;
+
+        auto work = std::function<void(void)>([&]() {
+            while (true) {
+                std::string target;
+                {
+                    std::lock_guard<std::mutex> lock(target_mtx);
+                    if (targets.empty()) {
+                        return;
+                    }
+                    target = targets.front();
+                    targets.pop_front();
+                }
+                process(target, arg_config_ref);
+            }
+        });
+        auto tasks = std::vector<std::thread>();
+        int jobs = arg_config->jobs;
+        if (!arg_config->quiet) {
+            utils::log("jobs: ", jobs);
+        }
+        if (jobs > targets.size()) {
+            jobs = targets.size();
+        }
+        for (int i = 0; i < jobs - 1; ++i) {
+            tasks.emplace_back(work);
+        }
+        // 1 task run in current.
+        work();
+        for (int i = 0; i < jobs - 1; ++i) {
+            tasks[i].join();
         }
     } catch (std::exception& exc) {
         std::cerr << "exception: " << exc.what() << std::endl;
