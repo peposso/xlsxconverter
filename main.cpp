@@ -94,50 +94,58 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    try {
-        std::list<std::string> targets;
-        for (auto& target: arg_config->targets) {
-            targets.push_back(target);
-        }
-        auto& arg_config_ref = arg_config.value();
-        std::mutex target_mtx;
-        std::mutex relation_mtx;
+    std::list<std::string> targets;
+    for (auto& target: arg_config->targets) {
+        targets.push_back(target);
+    }
 
-        auto work = std::function<void(void)>([&]() {
-            while (true) {
-                std::string target;
-                {
-                    std::lock_guard<std::mutex> lock(target_mtx);
-                    if (targets.empty()) {
-                        return;
-                    }
-                    target = targets.front();
-                    targets.pop_front();
+    int jobs = arg_config->jobs;
+    if (!arg_config->quiet) {
+        utils::log("jobs: ", jobs);
+    }
+    if (jobs > targets.size()) {
+        jobs = targets.size();
+    }
+
+    auto& arg_config_ref = arg_config.value();
+    std::mutex target_mtx;
+    bool canceled;
+
+    auto work = std::function<void(void)>([&]() {
+        while (!canceled) {
+            std::string target;
+            {
+                std::lock_guard<std::mutex> lock(target_mtx);
+                if (targets.empty()) {
+                    return;
                 }
-                process(target, arg_config_ref);
+                target = targets.front();
+                targets.pop_front();
             }
-        });
-        auto tasks = std::vector<std::thread>();
-        int jobs = arg_config->jobs;
-        if (!arg_config->quiet) {
-            utils::log("jobs: ", jobs);
+            try {
+                if (canceled) return;
+                process(target, arg_config_ref);
+            } catch (std::exception& exc) {
+                std::cerr << "exception: " << exc.what() << std::endl;
+                canceled = true;
+                return;
+            }
         }
-        if (jobs > targets.size()) {
-            jobs = targets.size();
-        }
-        for (int i = 0; i < jobs - 1; ++i) {
-            tasks.emplace_back(work);
-        }
-        // 1 task run in current.
-        work();
-        for (int i = 0; i < jobs - 1; ++i) {
-            tasks[i].join();
-        }
-    } catch (std::exception& exc) {
-        std::cerr << "exception: " << exc.what() << std::endl;
-        return 1;
-    } 
+    });
+    auto tasks = std::vector<std::thread>();
+    for (int i = 0; i < jobs - 1; ++i) {
+        tasks.emplace_back(work);
+    }
+    // 1 task run in current thread.
+    work();
 
+    for (int i = 0; i < jobs - 1; ++i) {
+        tasks[i].join();
+    }
+
+    if (canceled) {
+        return 1;
+    }
     return 0;
 }
 
