@@ -2,6 +2,10 @@
 
 #include "json.hpp"
 
+#define DISABLE_ANY XLSXCONVERTER_UTILS_DISABLE_ANY 
+#define ENABLE_ANY  XLSXCONVERTER_UTILS_ENABLE_ANY
+#define EXCEPTION XLSXCONVERTER_UTILS_EXCEPTION
+
 namespace xlsxconverter {
 namespace handlers {
 
@@ -21,7 +25,7 @@ struct DjangoFixtureHandler : public JsonHandler
             }
         }
         if (pk_index == -1) {
-            throw utils::exception("id field is not found.");
+            throw EXCEPTION("id field is not found.");
         }
         field_indent = indent + indent + indent;
     }
@@ -49,14 +53,14 @@ struct DjangoFixtureHandler : public JsonHandler
         } else if (!pk_strvalue.empty()) {
             write_value(pk_strvalue);
         } else {
-            throw utils::exception("pk column not found.");
+            throw EXCEPTION("pk column not found.");
         }
         buffer << endl << indent << "}";
     }
 
     template<class T, DISABLE_ANY(T, int64_t, std::string)>
     void set_pk(const T& v) {
-        throw utils::exception("bad pk type");
+        throw EXCEPTION("bad pk type");
     }
     template<class T, ENABLE_ANY(T, int64_t)>
     void set_pk(const T& v) {
@@ -79,3 +83,6 @@ struct DjangoFixtureHandler : public JsonHandler
 
 }
 }
+#undef DISABLE_ANY 
+#undef ENABLE_ANY
+#undef EXCEPTION

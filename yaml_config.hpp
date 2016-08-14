@@ -13,6 +13,8 @@
 
 #include "utils.hpp"
 
+#define EXCEPTION XLSXCONVERTER_UTILS_EXCEPTION
+
 namespace xlsxconverter {
 
 struct YamlConfig
@@ -42,7 +44,7 @@ struct YamlConfig
             else if (type_name == "csv") type = Type::kCSV;
             else if (type_name == "djangofixture") type = Type::kDjangoFixture;
             else if (type_name == "lua") type = Type::kLua;
-            else throw utils::exception("unknown handler.type: ", type_name);
+            else throw EXCEPTION("unknown handler.type: ", type_name);
             if (auto n = node["path"]) path = n.as<std::string>();
             if (auto n = node["indent"]) indent = n.as<int>();
             if (auto n = node["sort_keys"]) sort_keys = n.as<bool>();
@@ -101,7 +103,7 @@ struct YamlConfig
             else if (type_name == "char") type = Type::kChar;
             else if (type_name == "datetime") type = Type::kDateTime;
             else if (type_name == "foreignkey") type = Type::kForeignKey;
-            else throw utils::exception("unknown field.type: ", type_name);
+            else throw EXCEPTION("unknown field.type: ", type_name);
 
             if (auto n = node["default"]) {
                 using_default = true;
@@ -134,11 +136,8 @@ struct YamlConfig
     : path(path_), arg_config(arg_config_)
     {
         std::string fullpath = arg_config.yaml_search_path + "/" + path;
-        if (!arg_config.quiet) {
-            utils::log("target_yaml: ", path);
-        }
         if (!utils::fexists(fullpath)) {
-            throw utils::exception("yaml=", fullpath, " does not exist.");
+            throw EXCEPTION("yaml=", fullpath, " does not exist.");
         }
         auto doc = YAML::LoadFile(fullpath.c_str());
 
@@ -169,7 +168,11 @@ struct YamlConfig
 
         // handler
         if (auto node = doc["handler"]) {;
-            handler = Handler(node);
+            try {
+                handler = Handler(node);
+            } catch (utils::exception& exc) {
+                throw EXCEPTION(path, ": ", exc.what());
+            }
         }
 
         // fields
@@ -178,7 +181,7 @@ struct YamlConfig
             try {
                 fields.push_back(Field(node));
             } catch (utils::exception& exc) {
-                throw utils::exception(path, ": ", exc.what());
+                throw EXCEPTION(path, ": ", exc.what());
             }
         }
 
@@ -223,10 +226,10 @@ struct YamlConfig
                 return nullptr;
             }
             case YAML::NodeType::Sequence: {
-                throw utils::exception("bad default type: sequence.");
+                throw EXCEPTION("bad default type: sequence.");
             }
             case YAML::NodeType::Map: {
-                throw utils::exception("bad default type: map.");
+                throw EXCEPTION("bad default type: map.");
             }
             case YAML::NodeType::Scalar: {
                 break;
@@ -269,3 +272,5 @@ struct YamlConfig
 };
 
 }
+
+#undef EXCEPTION

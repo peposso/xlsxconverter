@@ -5,6 +5,9 @@
 #include "yaml_config.hpp"
 #include "utils.hpp"
 
+#define DISABLE_ANY XLSXCONVERTER_UTILS_DISABLE_ANY 
+#define ENABLE_ANY  XLSXCONVERTER_UTILS_ENABLE_ANY
+
 namespace xlsxconverter {
 namespace handlers {
 
@@ -163,3 +166,5 @@ struct JsonHandler
 
 }
 }
+#undef DISABLE_ANY 
+#undef ENABLE_ANY

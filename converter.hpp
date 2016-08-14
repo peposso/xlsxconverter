@@ -8,6 +8,8 @@
 #include "handlers.hpp"
 #include "utils.hpp"
 
+#define EXCEPTION XLSXCONVERTER_UTILS_EXCEPTION
+
 namespace xlsxconverter {
 
 struct Converter
@@ -60,10 +62,10 @@ struct Converter
     template<class T>
     void run(T& handler) {
         if (!config.arg_config.quiet) {
-            utils::log("target_sheet: ", config.target_sheet_name);
+            utils::log("sheet: ", config.target_sheet_name);
         }
         if (!config.arg_config.quiet) {
-            utils::log("target_xls: ", config.target_xls_path);
+            utils::log("xlsx: ", config.target_xls_path);
         }
         auto book = xlsx::Workbook(config.get_xls_path());
         auto& sheet = book.sheet_by_name(config.target_sheet_name);
@@ -85,7 +87,7 @@ struct Converter
                 // utils::log("i=", i, " name=",field.name, " cell=", cell.as_str());
                 if (cell.as_str() == field.name) {
                     if (utils::contains(column_mapping, i)) {
-                        throw utils::exception(config.target, ": field=", field.column, ": duplicated.");
+                        throw EXCEPTION(config.target, ": field=", field.column, ": duplicated.");
                     }
                     column_mapping.push_back(i);
                     found = true;
@@ -93,8 +95,8 @@ struct Converter
                 }
             }
             if (!found) {
-                throw utils::exception(config.target, ": row=", config.row,
-                                       ": field{column=", field.column, ",name=", field.name, "}: NOT exists.");
+                throw EXCEPTION(config.target, ": row=", config.row,
+                                ": field{column=", field.column, ",name=", field.name, "}: NOT exists.");
             }
         }
         return column_mapping;
@@ -145,8 +147,8 @@ struct Converter
         using FT = YamlConfig::Field::Type;
         using CT = xlsx::Cell::Type;
 
-        #define EXCEPT(...) utils::exception(config.target, ": field=", field.column, ": cell(", cell.row, ",", cell.col, \
-                                             "){value=", cell.as_str(), ",type=", cell.type_name(), "}: ", __VA_ARGS__)
+        #define EXCEPT(...) EXCEPTION(config.target, ": field=", field.column, ": cell(", cell.row, ",", cell.col, \
+                                      "){value=", cell.as_str(), ",type=", cell.type_name(), "}: ", __VA_ARGS__)
 
         if (field.type == FT::kInt)
         {

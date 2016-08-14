@@ -13,7 +13,7 @@ OBJS = $(SRCS:%.cpp=%.o)
 LIBS = external/libzip.a external/libpugixml.a external/libyaml-cpp.a
 HEADERS = $(wildcard *.hpp) $(wildcard handlers/*.hpp) $(wildcard utils/*.hpp)
 
-CPPFLAGS = -g -std=c++11 -O3 -I. -I./external -I./external/ziplib/Source/ZipLib -I./external/pugixml -I./external/yaml-cpp/include
+CPPFLAGS = -std=c++11 -O3 -I. -I./external -I./external/ziplib/Source/ZipLib -I./external/pugixml -I./external/yaml-cpp/include
 LDFLAGS = -L./external -lzip -lpugixml -lyaml-cpp
 
 TEST1_ARGS = dummy1.yaml --xls_search_path test --yaml_search_path test --output_base_path test --timezone +0900

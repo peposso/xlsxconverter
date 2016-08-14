@@ -6,6 +6,9 @@
 #include "utils.hpp"
 #include "relation_map.hpp"
 
+#define DISABLE_ANY XLSXCONVERTER_UTILS_DISABLE_ANY 
+#define ENABLE_ANY  XLSXCONVERTER_UTILS_ENABLE_ANY
+
 namespace xlsxconverter {
 namespace handlers {
 
@@ -150,3 +153,5 @@ struct CSVHandler
 
 }
 }
+#undef DISABLE_ANY 
+#undef ENABLE_ANY

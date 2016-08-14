@@ -2,7 +2,7 @@ target: "xls:///sample.xlsx#dummy1"
 row: 5
 limit: 10
 handler:
-  path: dummy1.csv
+  path: dummy1csv.csv
   type: csv
   comment_row: 5
   csv_field_type: true

@@ -5,6 +5,8 @@
 #include "yaml_config.hpp"
 #include "utils.hpp"
 
+#define EXCEPTION XLSXCONVERTER_UTILS_EXCEPTION
+
 namespace xlsxconverter {
 namespace handlers {
 
@@ -39,26 +41,29 @@ struct RelationMap
 
     inline
     RelationMap(YamlConfig::Field::Relation& relation, YamlConfig& config_)
-    : column(relation.column), from(relation.from), key(relation.key), config(config_)
+        : column(relation.column),
+          from(relation.from),
+          key(relation.key),
+          config(config_)
     {
         for (int i = 0; i < config.fields.size(); ++i) {
             auto& field = config.fields[i];
             if (field.column == column) column_index = i;
             if (field.column == key) key_index = i;
         }
-        if (column_index == -1) throw utils::exception("relation column is not found.");
-        if (key_index == -1) throw utils::exception("relation key is not found.");
+        if (column_index == -1) throw EXCEPTION("relation column is not found.");
+        if (key_index == -1) throw EXCEPTION("relation key is not found.");
 
         auto& column_field = config.fields[column_index];
         if (column_field.type != YamlConfig::Field::Type::kInt) {
-            utils::exception("relation column type must be int.");
+            throw EXCEPTION("relation column type must be int.");
         }
         column_type = column_field.type;
         column_type_name = column_field.type_name;
         
         auto& key_field = config.fields[key_index];
-        if (key_field.type != YamlConfig::Field::Type::kInt || key_field.type != YamlConfig::Field::Type::kChar) {
-            utils::exception("relation key type must be int or char.");
+        if (key_field.type != YamlConfig::Field::Type::kInt && key_field.type != YamlConfig::Field::Type::kChar) {
+            throw EXCEPTION("relation key type must be int or char.");
         }
         key_type = key_field.type;
         key_type_name = key_field.type_name;
@@ -77,7 +82,7 @@ struct RelationMap
         for (auto& rel: cache_) {
             if (rel == relation) return rel;
         }
-        throw utils::exception("relation_map is NOT exists.");
+        throw EXCEPTION("relation_map is NOT exists.");
     }
 
     inline static
@@ -90,7 +95,7 @@ struct RelationMap
     }
 
     template<class K, class V>
-    V get(const K& k) { throw utils::exception("invalid type"); }
+    V get(const K& k) { throw EXCEPTION("invalid type"); }
 
     inline
     void begin() {}
@@ -113,8 +118,8 @@ struct RelationMap
 
     inline
     void end_row() {
-        if (!current_key_handled) throw utils::exception("relation key cant handled.");
-        if (!current_column_handled) throw utils::exception("relation column cant handled.");
+        if (!current_key_handled) throw EXCEPTION("relation key cant handled.");
+        if (!current_column_handled) throw EXCEPTION("relation column cant handled.");
 
         auto& f1 = config.fields[key_index];
         auto& f2 = config.fields[column_index];
@@ -166,18 +171,18 @@ void RelationMap::field<int64_t>(YamlConfig::Field& field, const int64_t& value)
 template<>
 int64_t RelationMap::get<int64_t, int64_t>(const int64_t& value) {
     auto it = i2imap.find(value);
-    if (it == i2imap.end()) throw utils::exception("relation: key=", value, ": not found.");
+    if (it == i2imap.end()) throw EXCEPTION("relation: key=", value, ": not found.");
     return it->second;
 }
 
 template<>
 int64_t RelationMap::get<std::string, int64_t>(const std::string& value) {
     auto it = s2imap.find(value);
-    if (it == s2imap.end()) throw utils::exception("relation: key=", value, ": not found.");
+    if (it == s2imap.end()) throw EXCEPTION("relation: key=", value, ": not found.");
     return it->second;
 }
 
 
-
 }
 }
+#undef EXCEPTION
