@@ -68,7 +68,7 @@ template<class...A>
 void nop(A...) {}
 
 template<class...A>
-std::string sscat(A...a) {
+std::string sscat(const A&...a) {
     auto ss = std::stringstream();
     nop((ss << a, 0) ...);
     return std::move(ss.str());
@@ -101,7 +101,7 @@ void log(const A&...a) {
 }
 
 template<class...A>
-void logerr(A...a) {
+void logerr(const A&...a) {
     auto s = sscat(a..., '\n');
     std::lock_guard<spinlock> lock(logging_lock);
     std::cerr << s;

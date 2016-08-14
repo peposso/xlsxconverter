@@ -109,7 +109,7 @@ int main(int argc, char** argv)
 
     auto& arg_config_ref = arg_config.value();
     std::mutex target_mtx;
-    bool canceled;
+    bool canceled = false;
 
     auto work = std::function<void(void)>([&]() {
         while (!canceled) {
@@ -126,16 +126,18 @@ int main(int argc, char** argv)
                 if (canceled) return;
                 process(target, arg_config_ref);
             } catch (std::exception& exc) {
-                std::cerr << "exception: " << exc.what() << std::endl;
+                utils::logerr("exception: ", exc.what());
                 canceled = true;
                 return;
             }
         }
     });
+
     auto tasks = std::vector<std::thread>();
     for (int i = 0; i < jobs - 1; ++i) {
         tasks.emplace_back(work);
     }
+
     // 1 task run in current thread.
     work();
 
