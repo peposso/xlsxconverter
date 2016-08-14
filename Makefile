@@ -56,5 +56,5 @@ clean:
 	cd external/ziplib && make clean
 	cd external/ziplib && $(RM) Bin/libzip.a
 	cd external/yaml-cpp && make clean
-	cd external/yaml-cpp && $(RM) Makefile
+	cd external/yaml-cpp && ./clean.sh
 	$(RM) $(TARGET) $(OBJS) $(LIBS)
