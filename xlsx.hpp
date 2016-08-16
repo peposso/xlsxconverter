@@ -24,6 +24,11 @@ std::string sscat(const A&...a) {
     return ss.str();
 }
 
+struct Exception: std::runtime_error {
+    template<class...A>
+    Exception(A...a) : std::runtime_error(sscat(a...).c_str()) {}
+};
+
 struct StyleSheet
 {
     std::vector<int> num_fmts_by_xf_index;
@@ -195,10 +200,13 @@ struct Cell
         } else if (t == "s") {
             type = Type::kString;
             if (shared_string.get() == nullptr) {
-                throw std::runtime_error("invalid shared_string");
+                throw Exception("invalid shared_string: nullptr");
             }
             int i = std::stoi(v);
-            v = i < shared_string->size() ? shared_string->at(i) : "";
+            if (i < 0 || shared_string->size() <= i) {
+                throw Exception("invalid shared_string: invalid id=", i);
+            }
+            v = shared_string->at(i);
         } else {
             if (s > 0 && style_sheet->is_date_format(s)) {
                 type = Type::kDateTime;
@@ -331,57 +339,89 @@ struct Sheet
         }
         int max = -1;
         for (auto& pair: row_nodes()) {
-            int cols = 0;
-            for (auto& col: pair.second.children("c")) {
-                cols++;
+            int colmax = -1;
+            for (auto& c: pair.second.children("c")) {
+                std::string r = c.attribute("r").as_string();
+                int colx, rowx_;
+                std::tie(rowx_, colx) = parse_cell_position(r);
+                if (colx > colmax) colmax = colx;
             }
-            if (cols > max) max = cols;
+            if (colmax > max) max = colmax;
         }
         ncols_ = max + 1;
         return ncols_;
     }
 
     inline
-    Cell& cell(int row, int col) {
+    Cell& cell(int rowx, int colx) {
         // row, col: 0-index
-        if (row < 0 || nrows() <= row) return ncell;
-        if (col < 0 || ncols() <= col) return ncell;
-        if (cells_.size() <= row) cells_.resize(row + 1);
-        if (col < cells_[row].size()) {
-            return cells_[row][col];
+        if (rowx < 0 || nrows() <= rowx) return ncell;
+        if (colx < 0 || ncols() <= colx) return ncell;
+        if (cells_.size() <= rowx) cells_.resize(rowx + 1);
+        if (colx < cells_[rowx].size()) {
+            return cells_[rowx][colx];
         }
 
-        auto& row_cells = cells_[row];
+        auto& row_cells = cells_[rowx];
         row_cells.clear();
         int i = 0;
-        for (auto& c: row_nodes()[row].children("c")) {
+        for (auto& c: row_nodes()[rowx].children("c")) {
             // TODO: fix colx by attribute("r")
+            std::string r = c.attribute("r").as_string();
+            int colx, rowx_;
+            std::tie(rowx_, colx) = parse_cell_position(r);
+            if (rowx_ != rowx) {
+                throw Exception("bad. r=", r, " row=", rowx, " parsed_row=", rowx_);
+            }
             std::string t = c.attribute("t").as_string();
             auto s = c.attribute("s").as_int();
             std::string v = c.child("v").text().as_string();
-            row_cells.push_back(Cell(row, i++, v, t, s, shared_string, style_sheet));
+            auto cell = Cell(rowx, colx, v, t, s, shared_string, style_sheet);
+            if (row_cells.size() <= colx) {
+                for (int j = row_cells.size(); j < colx; ++j) {
+                    // fill empty cells
+                    row_cells.push_back(Cell(rowx, j));
+                }
+                row_cells.push_back(std::move(cell));
+            } else {
+                // ???
+                row_cells[colx] = std::move(cell);
+            }
         }
         for (int i = row_cells.size(); i < ncols(); ++i) {
-            row_cells.push_back(Cell(row, i));
+            // fill empty cells
+            row_cells.push_back(Cell(rowx, i));
         }
-        return row_cells[col];
+        return row_cells[colx];
     }
 
     inline
     std::tuple<int, int> parse_cell_position(std::string r) {
-        // TODO:
-        return std::make_tuple(0, 0);
+        size_t p = std::string::npos;
+        int colx = 0;
+        for (size_t i = 0; i < r.size(); ++i) {
+            uint8_t c = r[i];
+            if ('A' <= c && c <= 'Z') {
+                colx = colx * ('Z' - 'A' + 1) + (c - 'A' + 1);
+            } else if ('0' <= c && c <= '9') {
+                p = i;
+                break;
+            } else {
+                throw Exception("bad position char. row");
+            }
+        }
+        colx--;
+        if (p == std::string::npos) {
+            throw Exception("bad position char. col");
+        }
+        int rowx = std::stoi(r.substr(p)) - 1;
+        return std::make_tuple(rowx, colx);
     }
 };
 
 
 struct Workbook
 {
-    struct Exception: std::runtime_error {
-        template<class...A>
-        Exception(A...a) : std::runtime_error(sscat(a...).c_str()) {}
-    };
-
     ZipArchive::Ptr archive;
     std::unordered_map<std::string, int> entry_indexes;
     std::vector<std::string> entry_names;  // for debug
@@ -463,7 +503,8 @@ struct Workbook
             sheet_name_by_rid[sheet_rid] = sheet_name;
         }
 
-        for (auto si: load_doc("xl/sharedStrings.xml")->child("sst").children("si")) {
+        auto shared_string_doc = load_doc("xl/sharedStrings.xml");
+        for (auto si: shared_string_doc->child("sst").children("si")) {
             auto text = si.child("t").text().as_string();
             shared_string->push_back(text);
         }
