@@ -123,8 +123,16 @@ struct RelationMap
 
     inline
     void end_row() {
-        if (!current_key_handled) throw EXCEPTION("relation key cant handled.");
-        if (!current_column_handled) throw EXCEPTION("relation column cant handled.");
+        // if (!current_key_handled) return;
+        // if (!current_column_handled) return;
+        if (!current_key_handled) {
+            auto& field = config.fields[key_index];
+            throw EXCEPTION("relation key=", field.column, " cant handled.");
+        }
+        if (!current_column_handled) {
+            auto& field = config.fields[column_index];
+            throw EXCEPTION("relation column=", field.column, " cant handled.");
+        }
 
         auto& f1 = config.fields[key_index];
         auto& f2 = config.fields[column_index];
@@ -156,7 +164,8 @@ void RelationMap::field<std::string>(YamlConfig::Field& field, const std::string
     if (field.index == column_index) {
         current_column_strvalue = value;
         current_column_handled = true;
-    } else if (field.index == key_index) {
+    }
+    if (field.index == key_index) {
         current_key_strvalue = value;
         current_key_handled = true;
     }
@@ -168,7 +177,8 @@ void RelationMap::field<int64_t>(YamlConfig::Field& field, const int64_t& value)
     if (field.index == column_index) {
         current_column_intvalue = value;
         current_column_handled = true;
-    } else if (field.index == key_index) {
+    }
+    if (field.index == key_index) {
         current_key_intvalue = value;
         current_key_handled = true;
     }

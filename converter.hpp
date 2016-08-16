@@ -40,18 +40,22 @@ struct Converter
     };
 
     YamlConfig& config;
+    bool ignore_relation = false;
     std::vector<boost::optional<Validator>> validators;
     std::vector<boost::optional<handlers::RelationMap&>> relations;
 
     inline
-    Converter(YamlConfig& config_) : config(config_) {
+    Converter(YamlConfig& config_, bool ignore_relation_=false)
+        : config(config_),
+          ignore_relation(ignore_relation_)
+    {
         for (auto& field: config.fields) {
             if (field.validate == boost::none) {
                 validators.push_back(boost::none);
             } else {
                 validators.push_back(Validator(field));
             }
-            if (field.relation == boost::none) {
+            if (ignore_relation || field.relation == boost::none) {
                 relations.push_back(boost::none);
             } else {
                 relations.push_back(handlers::RelationMap::find_cache(field.relation.value()));
@@ -95,7 +99,10 @@ struct Converter
                 }
             }
             if (!found) {
-                throw EXCEPTION(config.target, ": row=", config.row,
+                for (int i = 0; i < sheet.ncols(); ++i) {;
+                    utils::log("cell(", config.row-1, ",", i, ")=", sheet.cell(config.row-1, i).as_str());
+                }
+                throw EXCEPTION(config.path, ": row=", config.row,
                                 ": field{column=", field.column, ",name=", field.name, "}: NOT exists.");
             }
         }
@@ -136,7 +143,11 @@ struct Converter
                 auto& relation = relations[k];
                 handle_cell(handler, cell, field, validator, relation);
             }
-            handler.end_row();
+            try {
+                handler.end_row();
+            } catch (utils::exception& exc) {
+                throw EXCEPTION(config.path, ": ", config.target, ": row=", j, ": ", exc.what());
+            }
         }
         handler.end();
         handler.save();
@@ -178,6 +189,31 @@ struct Converter
             }
             throw EXCEPT("type error. expect float.");
         }
+        else if (field.type == FT::kBool)
+        {
+            if (cell.type == CT::kEmpty && field.using_default) {
+                handle_cell_default(handler, cell, field);
+                return;
+            }
+            if (cell.type == CT::kEmpty) {
+                handler.field(field, false);
+                return;
+            }
+            if (cell.type == CT::kInt || cell.type == CT::kDouble) {
+                handler.field(field, cell.as_int() != 0);
+                return;
+            }
+            if (cell.type == CT::kString) {
+                auto s = cell.as_str();
+                if (s == "False" || s == "false" || s == "FALSE" || s == "No" || s == "no" || s == "No" || s == "0" || s == "0.0") {
+                    handler.field(field, false);
+                } else {
+                    handler.field(field, true);
+                }
+                return;
+            }
+            throw EXCEPT("type error. expect float.");
+        }
         else if (field.type == FT::kChar)
         {
             if (cell.type == CT::kEmpty && field.using_default) {
@@ -215,17 +251,23 @@ struct Converter
         }
         else if (field.type == FT::kForeignKey)
         {
+            if (ignore_relation) return;
             if (relation == boost::none) {
                 throw EXCEPT("requires relation map.");
             }
-            if (field.using_default) {
-                throw EXCEPT("cant use relation + default at same time.");
+            if (cell.type == CT::kEmpty && field.using_default) {
+                handle_cell_default(handler, cell, field);
+                return;
             }
             auto& relmap = relation.value();
             if (relmap.key_type == FT::kChar) {;
                 if (relmap.column_type == FT::kInt) {
-                    auto v = relmap.get<std::string, int64_t>(cell.as_str());
-                    handler.field(field, v);
+                    try {
+                        auto v = relmap.get<std::string, int64_t>(cell.as_str());
+                        handler.field(field, v);
+                    } catch (utils::exception& exc) {
+                        throw EXCEPT(exc.what());
+                    }
                     return;
                 } else {
                     throw EXCEPT("usable relation type maps are (char -> int), (int -> int).");
@@ -235,8 +277,12 @@ struct Converter
                     throw EXCEPT("not matched relation key_type.");
                 }
                 if (relmap.column_type == FT::kInt) {
-                    auto v = relmap.get<int64_t, int64_t>(cell.as_int());
-                    handler.field(field, v);
+                    try {
+                        auto v = relmap.get<int64_t, int64_t>(cell.as_int());
+                        handler.field(field, v);
+                    } catch (utils::exception& exc) {
+                        throw EXCEPT(exc.what());
+                    }
                     return;
                 } else {
                     throw EXCEPT("usable relation type maps are (char -> int), (int -> int).");

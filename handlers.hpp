@@ -1,3 +1,4 @@
+#pragma once
 #include "handlers/json.hpp"
 #include "handlers/djangofixture.hpp"
 #include "handlers/csv.hpp"

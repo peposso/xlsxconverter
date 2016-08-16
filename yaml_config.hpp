@@ -21,7 +21,7 @@ struct YamlConfig
 {
     struct Handler {
         enum Type {
-            kNone, kJson, kCSV, kDjangoFixture, kLua,
+            kNone, kJson, kCSV, kDjangoFixture, kLua, kEnum,
         };
         Type type;
         std::string type_name;
@@ -44,7 +44,9 @@ struct YamlConfig
             else if (type_name == "csv") type = Type::kCSV;
             else if (type_name == "djangofixture") type = Type::kDjangoFixture;
             else if (type_name == "lua") type = Type::kLua;
+            else if (type_name == "enum") type = Type::kEnum;
             else throw EXCEPTION("unknown handler.type: ", type_name);
+
             if (auto n = node["path"]) path = n.as<std::string>();
             if (auto n = node["indent"]) indent = n.as<int>();
             if (auto n = node["sort_keys"]) sort_keys = n.as<bool>();
@@ -76,10 +78,12 @@ struct YamlConfig
             std::string column;
             std::string from;
             std::string key;
+            std::string id;
             inline Relation(YAML::Node node) {
                 if (auto n = node["column"]) column = n.as<std::string>();
                 if (auto n = node["from"]) from = n.as<std::string>();
                 if (auto n = node["key"]) key = n.as<std::string>();
+                id = column + ':' + from + ':' + key;
             }
         };
         std::string type_name;

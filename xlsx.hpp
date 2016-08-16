@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdio.h>
+#include <sys/stat.h>
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -18,7 +18,7 @@
 namespace xlsx {
 
 template<class...A>
-std::string ss(const A&...a) {
+std::string sscat(const A&...a) {
     auto ss = std::stringstream();
     (void)(int[]){0, ((void)(ss << a), 0)... };
     return ss.str();
@@ -188,15 +188,17 @@ struct Cell
     Cell(int row, int col, std::string v_, std::string t, int s,
          std::shared_ptr<std::vector<std::string>> shared_string,
          std::shared_ptr<StyleSheet> style_sheet)
-    : row(row), col(col), v(v_) {
+        : row(row), col(col), v(v_)
+    {
         if (v == "") {
             type = Type::kEmpty;
         } else if (t == "s") {
             type = Type::kString;
-            if (shared_string.get() != nullptr) {
-                int i = std::stoi(v);
-                v = i < shared_string->size() ? shared_string->at(i) : "";
+            if (shared_string.get() == nullptr) {
+                throw std::runtime_error("invalid shared_string");
             }
+            int i = std::stoi(v);
+            v = i < shared_string->size() ? shared_string->at(i) : "";
         } else {
             if (s > 0 && style_sheet->is_date_format(s)) {
                 type = Type::kDateTime;
@@ -262,6 +264,7 @@ struct Cell
         return time - tz_seconds;
     }
 
+    inline
     std::string as_str() {
         return v;
     }
@@ -290,8 +293,10 @@ struct Sheet
           std::unique_ptr<pugi::xml_document> doc_,
           std::shared_ptr<std::vector<std::string>> shared_string_,
           std::shared_ptr<StyleSheet> style_sheet_)
-    : rid(rid_), name(name_), doc(std::move(doc_)), 
-      shared_string(shared_string_), style_sheet(style_sheet_)
+        : rid(rid_), name(name_),
+          doc(std::move(doc_)), 
+          shared_string(shared_string_),
+          style_sheet(style_sheet_)
     {}
 
     inline
@@ -350,6 +355,7 @@ struct Sheet
         row_cells.clear();
         int i = 0;
         for (auto& c: row_nodes()[row].children("c")) {
+            // TODO: fix colx by attribute("r")
             std::string t = c.attribute("t").as_string();
             auto s = c.attribute("s").as_int();
             std::string v = c.child("v").text().as_string();
@@ -360,6 +366,12 @@ struct Sheet
         }
         return row_cells[col];
     }
+
+    inline
+    std::tuple<int, int> parse_cell_position(std::string r) {
+        // TODO:
+        return std::make_tuple(0, 0);
+    }
 };
 
 
@@ -367,7 +379,7 @@ struct Workbook
 {
     struct Exception: std::runtime_error {
         template<class...A>
-        Exception(A...a) : std::runtime_error(ss(a...).c_str()) {}
+        Exception(A...a) : std::runtime_error(sscat(a...).c_str()) {}
     };
 
     ZipArchive::Ptr archive;
@@ -386,8 +398,13 @@ struct Workbook
 
     inline
     Workbook(std::string filename)
-    : shared_string(new std::vector<std::string>())
+        : shared_string(new std::vector<std::string>())
     {
+        struct stat statbuf;
+        if (::stat(filename.c_str(), &statbuf) != 0) {
+            throw Exception("file=", filename, " does not exist.");
+        }
+
         archive = ZipFile::Open(filename);
 
         int max_sheet_id = -1;
@@ -428,6 +445,8 @@ struct Workbook
             for (auto rel: doc->child("Relationships").children("Relationship")) {
                 auto rid = rel.attribute("Id").as_string();
                 std::string target = rel.attribute("Target").as_string();
+                auto ext = target.substr(target.size()-4);
+                if (ext != ".xml") continue;
                 if (target.substr(0, 3) != "xl/") {
                     target = "xl/" + target;
                 }
@@ -435,25 +454,18 @@ struct Workbook
             }
         }
 
-        {
-            auto doc = load_doc("xl/workbook.xml");
-            auto sheets = doc->child("workbook").child("sheets");
-            for (auto sheet: sheets.children("sheet")) {
-                // auto sheet_id = sheet.attribute("sheetId").as_int();
-                auto sheet_rid = sheet.attribute("r:id").as_string();
-                auto sheet_name = sheet.attribute("name").as_string();
-                sheet_rid_by_name[sheet_name] = sheet_rid;
-                sheet_name_by_rid[sheet_rid] = sheet_name;
-            }
+        auto workbook_doc = load_doc("xl/workbook.xml");
+        for (auto sheet: workbook_doc->child("workbook").child("sheets").children("sheet")) {
+            // auto sheet_id = sheet.attribute("sheetId").as_int();
+            auto sheet_rid = sheet.attribute("r:id").as_string();
+            auto sheet_name = sheet.attribute("name").as_string();
+            sheet_rid_by_name[sheet_name] = sheet_rid;
+            sheet_name_by_rid[sheet_rid] = sheet_name;
         }
 
-        {
-            auto doc = load_doc("xl/sharedStrings.xml");
-            auto sheets = doc->child("sst");
-            for (auto si: sheets.children("si")) {
-                auto text = si.child("t").text().as_string();
-                shared_string->push_back(text);
-            }
+        for (auto si: load_doc("xl/sharedStrings.xml")->child("sst").children("si")) {
+            auto text = si.child("t").text().as_string();
+            shared_string->push_back(text);
         }
 
         style_sheet = std::shared_ptr<StyleSheet>(

@@ -1,11 +1,13 @@
 #pragma once
-
 #include <iostream>
 #include <sstream>
 #include <sys/stat.h>
 #include <algorithm>
 #include <iterator>
 #include <atomic>
+#include <list>
+
+#include <boost/optional.hpp>
 
 // macros
 #define XLSXCONVERTER_UTILS_DISABLE_ANY(...) \
@@ -190,6 +192,58 @@ struct u8to32iter
     inline iterator begin() { return iterator(str, 0); }
     inline iterator end() { return iterator(str, str.size()); }
 };
+
+template<class T, class M=std::mutex>
+struct mutex_list
+{
+    struct not_found : public std::exception {};
+    M mutex;
+    std::list<T> list;
+
+    inline mutex_list()
+        : mutex(),
+          list()
+    {}
+    inline void push_back(T t) {
+        std::lock_guard<M> lock(mutex);
+        list.push_back(std::move(t));
+    }
+    inline boost::optional<T> move_front(bool* last_ptr=nullptr) {
+        std::lock_guard<M> lock(mutex);
+        if (list.empty()) return boost::none;
+        T t = std::move(list.front());
+        list.pop_front();
+        if (last_ptr != nullptr) *last_ptr = list.empty();
+        return t;
+    }
+    inline boost::optional<T> move_back(bool* last_ptr=nullptr) {
+        std::lock_guard<M> lock(mutex);
+        if (list.empty()) return boost::none;
+        T t = std::move(list.back());
+        list.pop_back();
+        if (last_ptr != nullptr) *last_ptr = list.empty();
+        return t;
+    }
+    inline bool empty() {
+        std::lock_guard<M> lock(mutex);
+        return list.empty();
+    }
+    template<class F> bool any(F f) {
+        std::lock_guard<M> lock(mutex);
+        for (auto& e: list) {
+            if (f(e)) return true;
+        }
+        return false;
+    }
+    template<class F> T& get(F f) {
+        std::lock_guard<M> lock(mutex);
+        for (auto& e: list) {
+            if (f(e)) return e;
+        }
+        throw not_found();
+    }
+};
+
 
 }
 }
