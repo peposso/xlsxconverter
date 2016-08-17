@@ -39,7 +39,7 @@ external/libpugixml.a:
 
 external/libyaml-cpp.a:
 ifeq ($(MSYSTEM),$(filter $(MSYSTEM),MINGW64 MINGW32))
-	CMAKE_C_COMPILER=$(CC) CMAKE_CXX_COMPILER=$(CXX) cd external/yaml-cpp && cmake . -G "MinGW Makefiles"
+	cd external/yaml-cpp && CMAKE_C_COMPILER=$(CC) CMAKE_CXX_COMPILER=$(CXX) cmake . -G "MinGW Makefiles"
 else
 	cd external/yaml-cpp && cmake .
 endif

@@ -19,10 +19,14 @@ cmake is required for yaml-cpp.
 
 ### windows
 
-    install msys2 mingw64
-    $ pacman --needed -Sy bash pacman pacman-mirrors msys2-runtime
-    $ pacman -Syu
-    $ pacman -S mingw-w64-i686-toolchain
-    $ pacman -S mingw64/mingw-w64-x86_64-cmake
+    install msys2
+    for x86_64
+    $ pacman -S mingw-w64-x86_64-toolchain
+    $ pacman -S mingw-w64-x86_64-cmake
     $ cd path/to/xlsxconverter
-    $ mingw32-make
+    $ mingw32-make CC=gcc CXX=g++
+    for x86
+    $ pacman -S mingw-w64-i686-toolchain
+    $ pacman -S mingw-w64-i686-cmake
+    $ cd path/to/xlsxconverter
+    $ mingw32-make CC=gcc CXX=g++
