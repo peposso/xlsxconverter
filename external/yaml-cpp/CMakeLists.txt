@@ -138,7 +138,7 @@ if(IPHONE)
 	set(CMAKE_OSX_ARCHITECTURES "armv6;armv7")
 endif()
 
-if(WIN32)
+if(WIN32 AND NOT MINGW)
 	if(BUILD_SHARED_LIBS)
 		add_definitions(-D${PROJECT_NAME}_DLL)	# use or build Windows DLL
 	endif()
@@ -149,7 +149,7 @@ endif()
 
 # GCC or Clang specialities
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR
-   CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+   CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR MINGW)
 	### General stuff
 	if(WIN32)
 		set(CMAKE_SHARED_LIBRARY_PREFIX "")	# DLLs do not have a "lib" prefix
@@ -337,7 +337,7 @@ install(FILES
 	DESTINATION "${INSTALL_CMAKE_DIR}" COMPONENT dev)
 install(EXPORT yaml-cpp-targets DESTINATION ${INSTALL_CMAKE_DIR})
 
-if(UNIX)
+if(UNIX OR MINGW)
 	set(PC_FILE ${CMAKE_BINARY_DIR}/yaml-cpp.pc)
 	configure_file("yaml-cpp.pc.cmake" ${PC_FILE} @ONLY)
 	install(FILES ${PC_FILE} DESTINATION ${LIB_INSTALL_DIR}/pkgconfig)

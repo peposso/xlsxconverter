@@ -1,7 +1,7 @@
-prefix=/usr/local
-exec_prefix=/usr/local
-libdir=${prefix}//usr/local/lib
-includedir=${prefix}//usr/local/include
+prefix=C:/Program Files (x86)/YAML_CPP
+exec_prefix=C:/Program Files (x86)/YAML_CPP
+libdir=${prefix}/C:/Program Files (x86)/YAML_CPP/bin
+includedir=${prefix}/C:/Program Files (x86)/YAML_CPP/include
 
 Name: Yaml-cpp
 Description: A YAML parser and emitter for C++

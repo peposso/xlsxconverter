@@ -1,5 +1,6 @@
 #!/bin/sh
 
+set +e
 rm -rf ./CMakeFiles
 rm ./CTestTestfile.cmake
 rm ./Makefile
@@ -28,3 +29,5 @@ rm ./util/read
 rm ./util/sandbox
 rm ./yaml-cpp-config.cmake
 rm ./yaml-cpp-targets.cmake
+
+exit 0
