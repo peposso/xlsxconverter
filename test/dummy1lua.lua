@@ -125,7 +125,7 @@
             country_code = "JP",
             current_preference_id = 18,
             family_name = "さささ",
-            first_name = "ひひひ",
+            first_name = "¥１００",
             id = 11,
             preference_id = 5
         },

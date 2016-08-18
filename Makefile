@@ -55,7 +55,9 @@ $(TARGET): $(OBJS) $(LIBS)
 
 test: $(TARGET)
 	ulimit -c unlimited && ($(TEST) || (lldb -c `ls -t /cores/* | head -n1` --batch -o 'thread backtrace all' -o 'quit' && exit 1))
-	[ -e ../test.sh ] && ../test.sh
+	python test/check_json.py test/dummy1.json
+	python test/check_json.py test/dummy1fix.json
+	[ -e ../test.sh ] && ../test.sh || true
 
 clean:
 	cd external/pugixml && $(RM) *.o

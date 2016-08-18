@@ -113,7 +113,15 @@ struct JsonHandler
         } else {
             for (auto uc: utils::u8to32iter(value)) {
                 if (uc >= 0x80) {
-                    buffer << "\\u" << std::hex << uc << std::dec;
+                    bool sarrogate;
+                    uint16_t c1, c2;
+                    std::tie(sarrogate, c1, c2) = utils::u32to16char(uc);
+                    if (sarrogate) {
+                        buffer << "\\u" << std::setw(4) << std::setfill('0') << std::hex << c1 << std::dec;
+                        buffer << "\\u" << std::setw(4) << std::setfill('0') << std::hex << c2 << std::dec;
+                    } else {
+                        buffer << "\\u" << std::setw(4) << std::setfill('0') << std::hex << c1 << std::dec;
+                    }
                 } else {
                     putchar_(uc);
                 }

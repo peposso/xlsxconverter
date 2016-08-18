@@ -200,6 +200,19 @@ struct u8to32iter
     inline iterator end() { return iterator(str, str.size()); }
 };
 
+
+inline
+std::tuple<bool, uint16_t, uint16_t> u32to16char(uint32_t c0) {
+    if ((c0 & ~0xFFFF) == 0) {
+        return std::make_tuple(false, c0, 0);
+    }
+    // sarrogate pair
+    uint16_t c1 = 0xD800 | ((((c0 & 0x1F0000) - 0x010000) | (c0 & 0x00FC00)) >> 10);
+    uint16_t c2 = 0xDC00 | (c0 & 0x0003FF);
+    return std::make_tuple(true, c1, c2);
+}
+
+
 template<class T, class M=std::mutex>
 struct mutex_list
 {
