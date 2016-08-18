@@ -149,6 +149,7 @@ parse_timezone(const std::string& str, size_t pos=0) {
 
 const time_t ntime = -0x80000000;
 
+inline
 time_t parse(const std::string& str, int default_tz_seconds=0) {
     auto sw = strwalker(str);
     bool ok1 = false, ok2 = false, ok3 = false;

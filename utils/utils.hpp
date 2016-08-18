@@ -100,19 +100,23 @@ struct spinlock
     state_.clear(std::memory_order_release);
   }
 };
-spinlock logging_lock;
+
+inline spinlock& logging_lock() {
+    static spinlock logging_lock;
+    return logging_lock;
+}
 
 template<class...A>
 void log(const A&...a) {
     auto s = sscat(a..., '\n');
-    std::lock_guard<spinlock> lock(logging_lock);
+    std::lock_guard<spinlock> lock(logging_lock());
     std::cout << s;
 }
 
 template<class...A>
 void logerr(const A&...a) {
     auto s = sscat(a..., '\n');
-    std::lock_guard<spinlock> lock(logging_lock);
+    std::lock_guard<spinlock> lock(logging_lock());
     std::cerr << s;
 }
 

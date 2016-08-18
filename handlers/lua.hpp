@@ -60,5 +60,5 @@ struct LuaHandler : public DjangoFixtureHandler
 
 }
 }
-#undef DISABLE_ANY 
+#undef DISABLE_ANY
 #undef ENABLE_ANY

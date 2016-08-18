@@ -6,6 +6,8 @@
 #include "yaml_config.hpp"
 #include "utils.hpp"
 
+#define DISABLE_ANY XLSXCONVERTER_UTILS_DISABLE_ANY 
+#define ENABLE_ANY  XLSXCONVERTER_UTILS_ENABLE_ANY
 #define EXCEPTION XLSXCONVERTER_UTILS_EXCEPTION
 
 namespace xlsxconverter {
@@ -13,8 +15,14 @@ namespace handlers {
 
 struct RelationMap
 {
-    static std::vector<RelationMap> cache_;
-    static std::mutex cache_mtx;
+    static std::vector<RelationMap>& cache() {
+        static std::vector<RelationMap> cache_;
+        return cache_;
+    }
+    static std::mutex& cache_mtx() {
+        static std::mutex cache_mtx_;
+        return cache_mtx_;
+    }
 
     YamlConfig& config;
     std::string column;
@@ -73,8 +81,8 @@ struct RelationMap
 
     inline static
     bool has_cache(YamlConfig::Field::Relation& relation) {
-        std::lock_guard<std::mutex> lock(cache_mtx);
-        for (auto& rel: cache_) {
+        std::lock_guard<std::mutex> lock(cache_mtx());
+        for (auto& rel: cache()) {
             if (rel == relation) return true;
         }
         return false;
@@ -82,8 +90,8 @@ struct RelationMap
 
     inline static
     RelationMap& find_cache(YamlConfig::Field::Relation& relation) {
-        std::lock_guard<std::mutex> lock(cache_mtx);
-        for (auto& rel: cache_) {
+        std::lock_guard<std::mutex> lock(cache_mtx());
+        for (auto& rel: cache()) {
             if (rel == relation) return rel;
         }
         throw EXCEPTION("relation_map is NOT exists.");
@@ -91,16 +99,33 @@ struct RelationMap
 
     inline static
     void store_cache(RelationMap relmap) {
-        std::lock_guard<std::mutex> lock(cache_mtx);
-        cache_.push_back(std::move(relmap));
+        std::lock_guard<std::mutex> lock(cache_mtx());
+        cache().push_back(std::move(relmap));
     }
 
     inline bool operator==(YamlConfig::Field::Relation& relation) {
         return column == relation.column && from == relation.from && key == relation.key;
     }
 
-    template<class K, class V>
-    V get(const K& k) { throw EXCEPTION("invalid type"); }
+    template<class V, class K, DISABLE_ANY(V, int64_t)>
+    int get(const K& k) { throw EXCEPTION("invalid type"); }
+
+    template<class V, class K, ENABLE_ANY(V, int64_t), DISABLE_ANY(K, int64_t, std::string)>
+    int get(const K& k) { throw EXCEPTION("invalid type"); }
+
+    template<class V, class K, ENABLE_ANY(V, int64_t), ENABLE_ANY(K, int64_t)>
+    V get(const K& key) {
+        auto it = i2imap.find(key);
+        if (it == i2imap.end()) throw EXCEPTION("relation: key=", key, ": not found.");
+        return it->second;
+    }
+
+    template<class V, class K, ENABLE_ANY(V, int64_t), ENABLE_ANY(K, std::string)>
+    V get(const K& key) {
+        auto it = s2imap.find(key);
+        if (it == s2imap.end()) throw EXCEPTION("relation: key=", key, ": not found.");
+        return it->second;
+    }
 
     inline
     void begin() {}
@@ -144,8 +169,39 @@ struct RelationMap
         }
     }
 
-    template<class T>
-    void field(YamlConfig::Field& field, const T& value) {}
+    template<class T, DISABLE_ANY(T, int64_t, std::string)>
+    void field(YamlConfig::Field& field, const T& value) {
+        if (comment) return;
+        if (field.index == column_index || field.index == key_index) {
+            throw EXCEPTION("pk field.type requires int or str.");
+        }
+    }
+
+    template<class T, ENABLE_ANY(T, std::string)>
+    void field(YamlConfig::Field& field, const T& value) {
+        if (comment) return;
+        if (field.index == column_index) {
+            current_column_strvalue = value;
+            current_column_handled = true;
+        }
+        if (field.index == key_index) {
+            current_key_strvalue = value;
+            current_key_handled = true;
+        }
+    }
+
+    template<class T, ENABLE_ANY(T, int64_t)>
+    void field(YamlConfig::Field& field, const T& value) {
+        if (comment) return;
+        if (field.index == column_index) {
+            current_column_intvalue = value;
+            current_column_handled = true;
+        }
+        if (field.index == key_index) {
+            current_key_intvalue = value;
+            current_key_handled = true;
+        }
+    }
 
     inline
     void end() {}
@@ -154,51 +210,8 @@ struct RelationMap
     void save() {}
 };
 
-std::vector<RelationMap> RelationMap::cache_;
-std::mutex RelationMap::cache_mtx;
-
-
-template<>
-void RelationMap::field<std::string>(YamlConfig::Field& field, const std::string& value) {
-    if (comment) return;
-    if (field.index == column_index) {
-        current_column_strvalue = value;
-        current_column_handled = true;
-    }
-    if (field.index == key_index) {
-        current_key_strvalue = value;
-        current_key_handled = true;
-    }
-}
-
-template<>
-void RelationMap::field<int64_t>(YamlConfig::Field& field, const int64_t& value) {
-    if (comment) return;
-    if (field.index == column_index) {
-        current_column_intvalue = value;
-        current_column_handled = true;
-    }
-    if (field.index == key_index) {
-        current_key_intvalue = value;
-        current_key_handled = true;
-    }
-}
-
-template<>
-int64_t RelationMap::get<int64_t, int64_t>(const int64_t& value) {
-    auto it = i2imap.find(value);
-    if (it == i2imap.end()) throw EXCEPTION("relation: key=", value, ": not found.");
-    return it->second;
-}
-
-template<>
-int64_t RelationMap::get<std::string, int64_t>(const std::string& value) {
-    auto it = s2imap.find(value);
-    if (it == s2imap.end()) throw EXCEPTION("relation: key=", value, ": not found.");
-    return it->second;
-}
-
-
 }
 }
 #undef EXCEPTION
+#undef DISABLE_ANY
+#undef ENABLE_ANY

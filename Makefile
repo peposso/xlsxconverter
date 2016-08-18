@@ -52,6 +52,12 @@ endif
 $(TARGET): $(OBJS) $(LIBS)
 	$(CXX) $(CPPFLAGS) $< $(LDFLAGS) -o $@
 
+test-duplicate:
+	# duplicate symbol test
+	$(CXX) $(CPPFLAGS) -c test/test_link.cpp -o test_link1.o
+	$(CXX) $(CPPFLAGS) -DMAIN -c test/test_link.cpp -o test_link2.o
+	$(CXX) test_link1.o test_link2.o $(LDFLAGS) -o test_link
+	$(RM) test_link
 
 test: $(TARGET)
 	ulimit -c unlimited && ($(TEST) || (lldb -c `ls -t /cores/* | head -n1` --batch -o 'thread backtrace all' -o 'quit' && exit 1))

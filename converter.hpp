@@ -263,7 +263,7 @@ struct Converter
             if (relmap.key_type == FT::kChar) {;
                 if (relmap.column_type == FT::kInt) {
                     try {
-                        auto v = relmap.get<std::string, int64_t>(cell.as_str());
+                        auto v = relmap.get<int64_t, std::string>(cell.as_str());
                         handler.field(field, v);
                     } catch (utils::exception& exc) {
                         throw EXCEPT(exc.what());

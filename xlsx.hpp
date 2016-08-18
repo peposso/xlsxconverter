@@ -40,6 +40,7 @@ struct Exception: std::runtime_error {
     Exception(A...a) : std::runtime_error(sscat(a...).c_str()) {}
 };
 
+
 struct StyleSheet
 {
     std::vector<int> num_fmts_by_xf_index;
@@ -89,9 +90,26 @@ struct StyleSheet
     0x31: "@",
     */
 
-    const static std::unordered_map<std::string, bool> non_date_formats;
-    const static std::string date_chars;
-    const static std::string num_chars;
+    template<class T = std::unordered_map<std::string, bool>>
+    static const T& non_date_formats() {
+        static const T non_date_formats = {
+            {"0.00E+00", true},
+            {"##0.0E+0", true},
+            {"General", true},
+            {"GENERAL", true},  // OOo Calc 1.1.4 does this.
+            {"general", true},  // pyExcelerator 0.6.3 does this.
+            {"@", true},
+        };
+        return non_date_formats;
+    }
+    inline static const std::string& date_chars() {
+        static const std::string date_chars = "ymdhs";
+        return date_chars;
+    }
+    inline static const std::string& num_chars() {
+        static const std::string num_chars = "0#?";
+        return num_chars;
+    }
 
     inline
     StyleSheet(std::unique_ptr<pugi::xml_document> doc) {
@@ -121,7 +139,7 @@ struct StyleSheet
         // 0-13: false, 14-22: true, 23-44: false, 45-47: true, 47-49: false
 
         auto code = format_codes[fmtid];
-        if (non_date_formats.count(code) == 1) {
+        if (non_date_formats().count(code) == 1) {
             is_date_table_[xf_index] = false;
             return false;
         }
@@ -132,9 +150,9 @@ struct StyleSheet
         int date_count = 0;
         int num_count = 0;
         for (auto c: s) {
-            if (date_chars.find(c) != std::string::npos) {
+            if (date_chars().find(c) != std::string::npos) {
                 date_count += 5;
-            } else if (num_chars.find(c) != std::string::npos) {
+            } else if (num_chars().find(c) != std::string::npos) {
                 num_count += 5;
             } else if (c == ';') {
                 got_sep = true;
@@ -171,16 +189,6 @@ struct StyleSheet
         return r;
     }
 };
-const std::unordered_map<std::string, bool> StyleSheet::non_date_formats = {
-    {"0.00E+00", true},
-    {"##0.0E+0", true},
-    {"General", true},
-    {"GENERAL", true},  // OOo Calc 1.1.4 does this.
-    {"general", true},  // pyExcelerator 0.6.3 does this.
-    {"@", true},
-};
-const std::string StyleSheet::date_chars = "ymdhs";
-const std::string StyleSheet::num_chars = "0#?";
 
 
 struct Cell
