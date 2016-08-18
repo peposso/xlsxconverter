@@ -47,6 +47,7 @@ struct strwalker
         inline anyfn(const std::string& pat) : pat(pat) {} 
         inline bool operator()(char& c) const { return pat.find(c) != std::string::npos; }
     };
+    inline
     bool any(const std::string& pat, int width = -1) {
         return match(anyfn(pat), width);
     }
@@ -56,9 +57,11 @@ struct strwalker
         inline isfn(const char& pat) : pat(pat) {} 
         inline bool operator()(char& c) const { return c == pat; }
     };
+    inline
     bool is(char c, int width=1) {
         return match(isfn(c), width);
     }
+    inline
     bool is(const std::string& pat) {
         auto sub = str.substr(pos, pos + pat.size());
         if (sub != pat) {
@@ -67,8 +70,8 @@ struct strwalker
         pos += sub.size();
         return true;
     }
-    bool eos() { return pos >= str.size(); }
-    int as_int() { return std::stoi(m); }
+    inline bool eos() { return pos >= str.size(); }
+    inline int as_int() { return std::stoi(m); }
 };
 
 inline
