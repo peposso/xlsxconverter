@@ -38,12 +38,12 @@ external/libpugixml.a:
 	cd external/pugixml && $(AR) r ../libpugixml.a pugixml.o
 
 external/libyaml-cpp.a:
-ifeq ($(MSYSTEM),$(filter $(MSYSTEM),MINGW64 MINGW32))
+ifneq ($(filter $(MSYSTEM),MINGW64 MINGW32),)
 	cd external/yaml-cpp && CMAKE_C_COMPILER=$(CC) CMAKE_CXX_COMPILER=$(CXX) cmake . -G "MinGW Makefiles"
 else
 	cd external/yaml-cpp && cmake .
 endif
-	cd external/yaml-cpp && $(MAKE)
+	cd external/yaml-cpp && $(MAKE) yaml-cpp/fast
 	cd external/yaml-cpp && cp libyaml-cpp.a ..
 
 .cpp.o:

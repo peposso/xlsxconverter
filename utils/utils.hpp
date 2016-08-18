@@ -66,18 +66,25 @@ bool contains(const std::vector<T> vec, const T& value) {
     return std::find(vec.begin(), vec.end(), value) != vec.end();
 }
 
-template<class...A>
-void nop(A...) {}
+template<class T>
+void sscat_detail_(std::stringstream& ss, const T& t) {
+    ss << t;
+}
+
+template<class T, class...A>
+void sscat_detail_(std::stringstream& ss, const T& t, const A&...a) {
+    ss << t;
+    sscat_detail_(ss, a...);
+}
 
 template<class...A>
 std::string sscat(const A&...a) {
     auto ss = std::stringstream();
-    nop((ss << a, 0) ...);
-    return std::move(ss.str());
+    sscat_detail_(ss, a...);
+    return ss.str();
 }
 
-struct exception : public std::runtime_error
-{
+struct exception : public std::runtime_error {
     template<class...A>
     exception(A...a) : std::runtime_error(sscat(a...).c_str()) {}
 };

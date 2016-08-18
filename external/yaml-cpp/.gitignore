@@ -27,3 +27,5 @@ build/
 /util/sandbox
 /yaml-cpp-config.cmake
 /yaml-cpp-targets.cmake
+/yaml-cpp-config-version.cmake
+/yaml-cpp.pc

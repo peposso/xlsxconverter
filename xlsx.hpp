@@ -17,10 +17,21 @@
 
 namespace xlsx {
 
+template<class T>
+void sscat_detail_(std::stringstream& ss, const T& t) {
+    ss << t;
+}
+
+template<class T, class...A>
+void sscat_detail_(std::stringstream& ss, const T& t, const A&...a) {
+    ss << t;
+    sscat_detail_(ss, a...);
+}
+
 template<class...A>
 std::string sscat(const A&...a) {
     auto ss = std::stringstream();
-    (void)(int[]){0, ((void)(ss << a), 0)... };
+    sscat_detail_(ss, a...);
     return ss.str();
 }
 
