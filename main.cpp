@@ -77,9 +77,6 @@ struct Task
             auto target = targets.move_front(&last);
             if (target == boost::none) break;
 
-            if (!arg_config.quiet) {
-                utils::log("target: ", target.value());
-            }
             auto yaml_config = YamlConfig(target.value(), arg_config);
             for (auto rel: yaml_config.relations()) {
                 if (!relations.any(id_functor(rel.id))) {
@@ -88,7 +85,13 @@ struct Task
             }
             yaml_configs.push_back(std::move(yaml_config));
 
-            if (last) phase1_done.unlock();
+            if (last) {
+                if (relations.empty()) {
+                    phase3_done.unlock();
+                    phase2_done.unlock();
+                }
+                phase1_done.unlock();
+            }
         }
     }
     void phase2() {
@@ -101,6 +104,7 @@ struct Task
             for (auto rel: yaml_config.relations()) {
                 if (!relations.any(id_functor(rel.id)) && !relation_yamls.any(id_functor(rel.id))) {
                     relations.push_back(std::move(rel));
+                    last = false;
                 }
             }
             relation_yamls.push_back(RelationYaml(relation->id, std::move(yaml_config), std::move(relation.value())));
@@ -117,9 +121,6 @@ struct Task
             auto rel = std::move(rel_yaml->relation);
             auto yaml_config = std::move(rel_yaml->yaml_config);
 
-            if (!arg_config.quiet) {
-                utils::log("relation_target: ", rel.from);
-            }
             auto relmap = handlers::RelationMap(rel, yaml_config);
             Converter(yaml_config, true).run(relmap);
             handlers::RelationMap::store_cache(std::move(relmap));
@@ -133,9 +134,9 @@ struct Task
             auto yaml_config = yaml_configs.move_front(&last);
             if (yaml_config == boost::none) break;
 
-            if (!arg_config.quiet) {
-                utils::log("convert: ", yaml_config->path);
-            }
+            // if (!arg_config.quiet) {
+            //     utils::log("convert: ", yaml_config->path);
+            // }
             auto converter = Converter(yaml_config.value());
             switch (yaml_config->handler.type) {
                 case YamlConfig::Handler::Type::kJson: {

@@ -65,12 +65,6 @@ struct Converter
 
     template<class T>
     void run(T& handler) {
-        if (!config.arg_config.quiet) {
-            utils::log("sheet: ", config.target_sheet_name);
-        }
-        if (!config.arg_config.quiet) {
-            utils::log("xlsx: ", config.target_xls_path);
-        }
         auto book = xlsx::Workbook(config.get_xls_path());
         auto& sheet = book.sheet_by_name(config.target_sheet_name);
 

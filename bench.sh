@@ -6,6 +6,7 @@ ARGS1='--xls_search_path test --yaml_search_path test --json_base_path test'
 ARGS2='--xls_search_path test --yaml_search_path test --output_base_path test --quiet'
 TARGETS='dummy1.yaml dummy1fix.yaml dummy1csv.yaml dummy1lua.yaml'
 
+
 echo "--------------------------------"
 echo "python ssconvert..."
 time for i in {1..10}; do
