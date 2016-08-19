@@ -1,0 +1,6 @@
+platform:
+  - x64
+install:
+  - C:\msys64\usr\bin\pacman --noconfirm --sync --refresh --refresh --sysupgrade --sysupgrade
+  - C:\msys64\usr\bin\pacman --noconfirm --sync mingw-w64-i686-toolchain
+  - C:\msys64\usr\bin\bash --login -c "mingw32-make"
