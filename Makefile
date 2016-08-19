@@ -18,7 +18,7 @@ else
 endif
 
 ifneq ($(DEBUG),)
-	CPPFLAGS:=-g -fsanitize=address -fsanitize=kernel-address -fsanitize=leak -fsanitize=thread -fstack-protector-all -fno-omit-frame-pointer $(CPPFLAGS) -DDEBUG=$(DEBUG)
+	CPPFLAGS:=-g -fsanitize=address -fsanitize=leak -fstack-protector-all -fno-omit-frame-pointer $(CPPFLAGS) -DDEBUG=$(DEBUG)
 	# CPPFLAGS:=-g -fsanitize=thread -fstack-protector-all -fno-omit-frame-pointer $(CPPFLAGS) -DDEBUG=$(DEBUG)
 	LDFLAGS:=$(LDFLAGS) -lasan
 endif
