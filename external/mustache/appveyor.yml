@@ -1,0 +1,17 @@
+branches:
+  only:
+    - master
+
+os: Windows Server 2012 R2
+
+platform: x64
+configuration: Release
+
+before_build:
+  - cmake -G "Visual Studio 12 Win64"
+
+build:
+  project: mustache.sln
+
+after_build:
+  - Release\mustache.exe

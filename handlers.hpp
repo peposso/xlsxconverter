@@ -3,4 +3,5 @@
 #include "handlers/djangofixture.hpp"
 #include "handlers/csv.hpp"
 #include "handlers/lua.hpp"
+#include "handlers/templates.hpp"
 #include "handlers/relation_map.hpp"

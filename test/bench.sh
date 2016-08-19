@@ -1,6 +1,6 @@
 #!/bin/sh
 
-cd `dirname $0`
+cd `dirname $0`/..
 
 ARGS1='--xls_search_path test --yaml_search_path test --json_base_path test'
 ARGS2='--xls_search_path test --yaml_search_path test --output_base_path test --quiet'

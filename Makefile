@@ -23,7 +23,7 @@ LDFLAGS = -L./external -lzip -lpugixml -lyaml-cpp -lpthread
 TEST = ./$(TARGET) --jobs full \
 		--xls_search_path test --yaml_search_path test --output_base_path test \
 		--timezone +0900 \
-		dummy1.yaml dummy1fix.yaml dummy1csv.yaml dummy1lua.yaml
+		dummy1.yaml dummy1fix.yaml dummy1csv.yaml dummy1lua.yaml countrytmpl.yaml
 
 all: $(TARGET)
 

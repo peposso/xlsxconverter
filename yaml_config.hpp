@@ -21,11 +21,12 @@ struct YamlConfig
 {
     struct Handler {
         enum Type {
-            kNone, kJson, kCSV, kDjangoFixture, kLua, kEnum,
+            kError, kNone, kJson, kCSV, kDjangoFixture, kLua, kTemplate, kEnum,
         };
-        Type type;
+        Type type = kError;
         std::string type_name;
         std::string path;
+        std::string source;
         int indent = 4;
         // for json
         bool sort_keys = false;
@@ -35,19 +36,23 @@ struct YamlConfig
         boost::optional<std::unordered_map<std::string, std::string>> type_name_mapping = boost::none;
         bool csv_field_type = false;
         bool csv_field_column = false;
+        YAML::Node context;
 
         inline Handler() {}
         inline Handler(YAML::Node node) {
             auto typepath = utils::split(node["type"].as<std::string>(), '.');
             type_name = typepath[typepath.size()-1];
-            if      (type_name == "json") type = Type::kJson;
+            if      (type_name == "none") type = Type::kNone;
+            else if (type_name == "json") type = Type::kJson;
             else if (type_name == "csv") type = Type::kCSV;
             else if (type_name == "djangofixture") type = Type::kDjangoFixture;
             else if (type_name == "lua") type = Type::kLua;
+            else if (type_name == "template") type = Type::kTemplate;
             else if (type_name == "enum") type = Type::kEnum;
             else throw EXCEPTION("unknown handler.type: ", type_name);
 
             if (auto n = node["path"]) path = n.as<std::string>();
+            if (auto n = node["source"]) source = n.as<std::string>();
             if (auto n = node["indent"]) indent = n.as<int>();
             if (auto n = node["sort_keys"]) sort_keys = n.as<bool>();
             if (auto n = node["allow_non_ascii"]) allow_non_ascii = n.as<bool>();
@@ -56,12 +61,13 @@ struct YamlConfig
             if (auto n = node["type_name_mapping"]) {
                 auto map = std::unordered_map<std::string, std::string>();
                 for (const auto& it: n) {
-                    map.insert(std::make_pair(it.first.as<std::string>(), it.second.as<std::string>()));
+                    map.emplace(it.first.as<std::string>(), it.second.as<std::string>());
                 }
                 type_name_mapping = std::move(map);
             }
             if (auto n = node["csv_field_type"]) csv_field_type = n.as<bool>();
             if (auto n = node["csv_field_column"]) csv_field_column = n.as<bool>();
+            context = node["context"];
         }
     };
     struct Field {

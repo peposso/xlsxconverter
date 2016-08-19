@@ -6,6 +6,9 @@
 #include <iterator>
 #include <atomic>
 #include <list>
+#include <unordered_map>
+#include <clocale>
+#include <fstream>
 
 #include <boost/optional.hpp>
 
@@ -47,11 +50,21 @@ struct anytypeof : anytypeof_<T, std::tuple<A...> , sizeof...(A)-1> {};
 inline
 std::vector<std::string> split(const std::string& str, char delim) {
     auto ss = std::istringstream(str);
-
     std::string item;
     std::vector<std::string> result;
     while (std::getline(ss, item, delim)) {
         result.push_back(item);
+    }
+    if (result.empty()) result.resize(1);
+    return result;
+}
+template<class...A>
+std::vector<std::string> split(const std::string& str, char delim, A...a) {
+    std::vector<std::string> result;
+    for (auto& item: split(str, delim)) {
+        for (auto& child: split(item, a...)) {
+            result.push_back(child);
+        }
     }
     return result;
 }
@@ -59,6 +72,66 @@ inline
 bool fexists(const std::string& name) {
     struct stat statbuf;
     return ::stat(name.c_str(), &statbuf) == 0;
+}
+inline
+bool isabspath(const std::string& name) {
+    if (name.empty()) return false;
+    char c = name[0];
+    if (c == '/') return true;
+    if (name.size() == 1) return false;
+    if (std::isalpha(c) && name[1] == ':') {
+        if (name.size() == 2) return true;
+        if (name[2] == '/' || name[2] == '\\') return true;
+    }
+    if (c == '\\' && name[1] == '\\') return true;
+    return false;
+}
+inline
+std::string dirname(const std::string& name) {
+    auto p1 = name.rfind('/');
+    auto p2 = name.rfind('\\');
+    if (p1 == std::string::npos && p1 == std::string::npos) return "";
+    if (p1 != std::string::npos) return name.substr(0, p1);
+    return name.substr(0, p2);
+}
+
+inline
+void mkdirp(const std::string& name) {
+    if (name.empty()) return;
+    auto names = split(name, '/', '\\');
+    #ifdef WIN32
+    auto sep = '\\';
+    #else
+    auto sep = '/';
+    #endif
+    std::string path;
+    if (isabspath(name)) {
+        path = names[0];
+        names.erase(names.begin());
+    }
+    for (auto n: names) {
+        path = path.empty() ? n : path + sep + n;
+        if (!fexists(path)) {
+            #if WIN32
+            ::_mkdir(path.c_str());
+            #else
+            ::mkdir(path.c_str(), 0755);
+            #endif
+        } 
+    }
+}
+inline
+std::string readfile(const std::string& name) {
+    auto fi = std::ifstream(name.c_str(), std::ios::binary);
+    std::stringstream ss;
+    ss << fi.rdbuf();
+    return ss.str();
+}
+inline
+void writefile(const std::string& name, const std::string& content) {
+    mkdirp(dirname(name));
+    auto fo = std::ofstream(name.c_str(), std::ios::binary);
+    fo << content;
 }
 
 template<class T>
@@ -265,6 +338,44 @@ struct mutex_list
             if (f(e)) return e;
         }
         throw not_found();
+    }
+};
+
+
+template<class K, class V, class M=std::mutex>
+struct mutex_map
+{
+    M mutex;
+    std::unordered_map<K, V> map;
+
+    inline mutex_map()
+        : mutex(),
+          map()
+    {}
+    inline void emplace(K k, V v) {
+        std::lock_guard<M> lock(mutex);
+        map.emplace(std::move(k), std::move(v));
+    }
+    inline V& emplace_ref(K k, V v) {
+        std::lock_guard<M> lock(mutex);
+        map.emplace(k, std::move(v));
+        auto it = map.find(k);
+        return it->second;
+    }
+    inline boost::optional<V> get(const K& k) {
+        std::lock_guard<M> lock(mutex);
+        auto it = map.find(k);
+        if (it == map.end()) return boost::none;
+        return it->second;
+    }
+    inline bool has(const K& k) {
+        std::lock_guard<M> lock(mutex);
+        auto it = map.find(k);
+        return it != map.end();
+    }
+    inline bool empty() {
+        std::lock_guard<M> lock(mutex);
+        return map.empty();
     }
 };
 

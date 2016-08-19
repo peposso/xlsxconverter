@@ -5,12 +5,13 @@ xlsx to data converter written in c++11.
 
 ## EXTERNAL LIBRARIES
 
-all dependent libs are in repo.
+all in repo.
 
-- boost (Boost Software License)
-- yaml-cpp (MIT License)
-- pugixml (MIT License)
-- ziplib (zlib License)
+- boost (Boost Software License) [http://www.boost.org/]
+- yaml-cpp (MIT License) [https://github.com/jbeder/yaml-cpp]
+- pugixml (MIT License) [http://pugixml.org/]
+- ziplib (zlib License) [https://bitbucket.org/wbenny/ziplib/wiki/Home]
+- Mustache (MIT License) [https://github.com/kainjow/Mustache]
 
 
 ## BUILD

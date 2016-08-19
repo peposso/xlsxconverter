@@ -159,6 +159,11 @@ struct Task
                     converter.run(handler);
                     break;
                 }
+                case YamlConfig::Handler::Type::kTemplate: {
+                    auto handler = handlers::TemplateHandler(yaml_config.value());
+                    converter.run(handler);
+                    break;
+                }
                 default: {
                     throw EXCEPTION(yaml_config->path, ": handler.type=", yaml_config->handler.type_name,
                                     ": not implemented.");
