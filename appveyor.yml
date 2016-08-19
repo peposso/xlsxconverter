@@ -2,7 +2,7 @@ platform:
   - x64
 install:
   - C:\msys64\usr\bin\pacman --noconfirm --sync --refresh --refresh --sysupgrade --sysupgrade
-  - C:\msys64\usr\bin\pacman --noconfirm --sync mingw-w64-i686-toolchain
+  - C:\msys64\usr\bin\pacman --noconfirm --sync mingw-w64-x86_64-toolchain
   - C:\msys64\usr\bin\pacman --noconfirm --sync mingw-w64-x86_64-cmake
 build_script:
   - set MSYSTEM=MINGW64
