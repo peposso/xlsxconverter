@@ -21,7 +21,7 @@ struct LuaHandler : public DjangoFixtureHandler
     inline
     void begin() {
         buffer.clear();
-        buffer << "{";
+        buffer << "return" + space + "{";
         is_first_row = true;
     }
 

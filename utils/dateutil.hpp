@@ -122,7 +122,7 @@ parse_time(const std::string& str, size_t pos=0) {
     if (sw.digits(1)) { return failed; }
     if (hour < 0 || 23 < hour) { return failed; }
     if (minute < 0 || 59 < minute) { return failed; }
-    if (second < 0 || 60 < minute) { return failed; }
+    if (second < 0 || 60 < second) { return failed; }
     return std::make_tuple(true, hour, minute, second, millisecond, sw.pos);
 }
 

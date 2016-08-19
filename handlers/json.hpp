@@ -151,9 +151,7 @@ struct JsonHandler
 
     inline
     void save() {
-
-        auto fo = std::ofstream(config.get_output_path().c_str(), std::ios::binary);
-        fo << buffer.str();
+        utils::writefile(config.get_output_path(), buffer.str());
         if (!config.arg_config.quiet) {
             utils::log(config.handler.path, " writed.");
         }
