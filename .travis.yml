@@ -3,26 +3,37 @@ sudo: required
 dist: trusty
 matrix:
   include:
-    # gcc 5 on linux
-    - os: linux
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - llvm-toolchain-precise-3.7
-            - llvm-toolchain-precise
-          packages:
-            - gcc-5
-            - g++-5
-    # clang on osx
-    - os: osx
-      compiler: clang
+  - os: linux
+    addons:
+      apt:
+        sources:
+        - ubuntu-toolchain-r-test
+        - llvm-toolchain-precise-3.7
+        - llvm-toolchain-precise
+        packages:
+        - gcc-5
+        - g++-5
+  - os: osx
+    compiler: clang
 before_install:
   - if [ "$CXX" = "g++" ]; then export CXX="g++-5" CC="gcc-5"; fi
-before_script:
+before_script: 
 script:
   - make
   - make test
-after_success:
+  - make release
+after_success: 
 notifications:
   email: false
+before_deploy:
+  - export RELEASE_PKG_FILE=$(ls *.zip)
+  - echo "deploying $RELEASE_PKG_FILE to GitHub releases"
+deploy:
+  provider: releases
+  api_key:
+    secure: ZxKrXOvkkD5f2AvdC0aSAfyMvMBlBHACGU7Tch3wvDFxzobnpy+aTvlVtf/XRXpJwVQtLrVlLetYBwU2ALWMVrx/P1xCa8ZWQ0KcVzMlKoRtsCaL+7uZoXPf8Sknae8DnzbCcH2cfGgHkQu8XDBHxDnCgTgecrNXtcXnt0e2X1Iuo6NPHUpOo68cdb8bKNuyZ0Etdpc2g1GumSMNByQe4wgI3nqbcyWV3BHvraJ7HECQLngGM3BxFXp1bXocruEa28dzO5cBoIS8FiWjI6O4lt3YY0hO2OTTvMuxyEzTFKA35hKvFBsYyjEoWZvGBbC7CsDo8zXDKsPS9+o6dMZA1mRwRoNRyxJHdvfY8TBRxFmzhxArtaeBlN9lTVBIz3SYpc9aloCRKzCN/jJup+h3Q1OhxUgx76LPMBLyQD/KUR5bwdx/fdiSg71GvjaplFOtLSHd9nD5rz3HGJj94nK40HYGMklCAgO+KTqSVlctwBMrAknKEJFk1ur+R/RfDzKJ3c0TF1tIlBjuJAuSeg4EGPex28CEAQOXctN6eHiHL68Vjrye52ngds7XUoM8B3YApaJq76grlAh0WD1nWZt8O3uEgYFKSoqzr2t1YSFPlx0zzVDLEqZVi1gMlKeBHjq+0seCmjqZ6B8zGaZQ36VQdfbGEEIL3gl3cSTNPKTke5c=
+  file_glob: true
+  file: "${RELEASE_PKG_FILE}"
+  on:
+    repo: peposso/xlsxconverter
+  skip_cleanup: true

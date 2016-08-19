@@ -2,6 +2,8 @@
 
 xlsx to data converter written in c++11.
 
+[![Build Status](https://travis-ci.org/peposso/xlsxconverter.svg?branch=master)](https://travis-ci.org/peposso/xlsxconverter)
+
 
 ## EXTERNAL LIBRARIES
 

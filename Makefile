@@ -18,6 +18,17 @@ TEST = ./$(TARGET) --jobs full \
 		--timezone +0900 \
 		dummy1.yaml dummy1fix.yaml dummy1csv.yaml dummy1lua.yaml countrytmpl.yaml
 
+ifeq ($(shell uname -s),Darwin)
+	OS = mac
+else ifeq ($(shell uname -s),Linux)
+	OS = linux
+else
+	OS = windows
+endif
+
+RELEASE_NAME = $(TARGET)-$(OS)-$(shell uname -m)-$(shell git rev-parse --short HEAD)
+
+
 all: $(TARGET)
 
 main.o: main.cpp $(HEADERS) Makefile
@@ -53,10 +64,15 @@ test-duplicate:
 	$(RM) test_link
 
 test:
+ifneq ($(CC),clang)
 	ulimit -c unlimited && ($(TEST) || (lldb -c `ls -t /cores/* | head -n1` --batch -o 'thread backtrace all' -o 'quit' && exit 1))
+else
+	$(TEST)
+endif
 	python test/check_json.py test/dummy1.json
 	python test/check_json.py test/dummy1fix.json
 	[ -e ../test.sh ] && ../test.sh || true
+.PHONY: test
 
 clean:
 	cd external/pugixml && $(RM) *.o
@@ -65,3 +81,9 @@ clean:
 	# cd external/yaml-cpp && $(MAKE) clean
 	cd external/yaml-cpp && ./clean.sh
 	$(RM) $(TARGET) $(OBJS) $(LIBS)
+.PHONY: clean
+
+release: $(TARGET)
+	-rm $(RELEASE_NAME).zip
+	zip $(RELEASE_NAME).zip $(TARGET)
+.PHONY: release
