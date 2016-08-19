@@ -7,9 +7,6 @@ LIBS = external/libyaml-cpp.a external/libzip.a external/libpugixml.a
 HEADERS = $(wildcard *.hpp) $(wildcard handlers/*.hpp) $(wildcard utils/*.hpp)
 
 CPPFLAGS = -std=c++11 -O3 -I. -I./external -I./external/ziplib/Source/ZipLib -I./external/pugixml -I./external/yaml-cpp/include
-ifneq ($(DEBUG),)
-	CPPFLAGS:=-g -fsanitize=address -fsanitize=leak -fno-omit-frame-pointer $(CPPFLAGS) -DDEBUG=$(DEBUG)
-endif
 
 LDFLAGS = -L./external -lzip -lpugixml -lyaml-cpp -lpthread
 ifneq ($(filter $(MSYSTEM),MINGW64 MINGW32),)
@@ -20,6 +17,10 @@ else
 	EXE =
 endif
 
+ifneq ($(DEBUG),)
+	CPPFLAGS:=-g -fsanitize=address -fsanitize=leak -fsanitize=thread -fstack-protector-all -fno-omit-frame-pointer $(CPPFLAGS) -DDEBUG=$(DEBUG)
+	LDFLAGS:=$(LDFLAGS) -lasan
+endif
 
 TEST = ./$(TARGET)$(EXE) --jobs full \
 		--xls_search_path test --yaml_search_path test --output_base_path test \
