@@ -21,9 +21,9 @@ else
 endif
 
 
-TEST = ./$(TARGET) --jobs full \
+TEST = ./$(TARGET)$(EXE) --jobs full \
 		--xls_search_path test --yaml_search_path test --output_base_path test \
-		--timezone +0900 \
+		--timezone '+0900' \
 		dummy1.yaml dummy1fix.yaml dummy1csv.yaml dummy1lua.yaml countrytmpl.yaml
 
 ifeq ($(shell uname -s),Darwin)
