@@ -3,7 +3,7 @@ TARGET = xlsxconverter
 
 SRCS = $(wildcard *.cpp)
 OBJS = $(SRCS:%.cpp=%.o)
-LIBS = external/libzip.a external/libpugixml.a external/libyaml-cpp.a
+LIBS = external/libyaml-cpp.a external/libzip.a external/libpugixml.a
 HEADERS = $(wildcard *.hpp) $(wildcard handlers/*.hpp) $(wildcard utils/*.hpp)
 
 CPPFLAGS = -std=c++11 -O3 -I. -I./external -I./external/ziplib/Source/ZipLib -I./external/pugixml -I./external/yaml-cpp/include
@@ -46,7 +46,7 @@ external/libpugixml.a:
 
 external/libyaml-cpp.a:
 ifneq ($(filter $(MSYSTEM),MINGW64 MINGW32),)
-	cd external/yaml-cpp && cmake . -G "MinGW Makefiles" CMAKE_C_COMPILER=$(CC) CMAKE_CXX_COMPILER=$(CXX)
+	cd external/yaml-cpp && CMAKE_C_COMPILER=$(CC) CMAKE_CXX_COMPILER=$(CXX) cmake . -G "MinGW Makefiles"
 else
 	cd external/yaml-cpp && cmake .
 endif
@@ -56,7 +56,7 @@ endif
 .cpp.o:
 	$(CXX) $(CPPFLAGS) -c $< -o $@
 
-$(TARGET): $(OBJS) $(LIBS)
+$(TARGET): $(LIBS) $(OBJS)
 	$(CXX) $(CPPFLAGS) $< $(LDFLAGS) -o $@
 
 test-duplicate:
