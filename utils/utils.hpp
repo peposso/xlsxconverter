@@ -112,8 +112,8 @@ void mkdirp(const std::string& name) {
     for (auto n: names) {
         path = path.empty() ? n : path + sep + n;
         if (!fexists(path)) {
-            #if _WIN32
-            ::_mkdir(path.c_str());
+            #ifdef _WIN32
+            ::mkdir(path.c_str());
             #else
             ::mkdir(path.c_str(), 0755);
             #endif

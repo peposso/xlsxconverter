@@ -3,6 +3,9 @@ platform:
 install:
   - C:\msys64\usr\bin\pacman --noconfirm --sync --refresh --refresh --sysupgrade --sysupgrade
   - C:\msys64\usr\bin\pacman --noconfirm --sync mingw-w64-i686-toolchain
+  - C:\msys64\usr\bin\pacman --noconfirm --sync mingw-w64-x86_64-cmake
 build_script:
   - set MSYSTEM=MINGW64
   - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && make"
+  - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && make test"
+  - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && make release OS=windows ARCH=x86_64"

@@ -23,10 +23,11 @@ ifeq ($(shell uname -s),Darwin)
 else ifeq ($(shell uname -s),Linux)
 	OS = linux
 else
-	OS = windows
+	OS = other
 endif
+ARCH = $(shell uname -m)
 
-RELEASE_NAME = $(TARGET)-$(OS)-$(shell uname -m)-$(shell git rev-parse --short HEAD)
+RELEASE_NAME = $(TARGET)-$(OS)-$(ARCH)-$(shell git rev-parse --short HEAD)
 
 
 all: $(TARGET)
