@@ -12,6 +12,12 @@ ifneq ($(DEBUG),)
 endif
 
 LDFLAGS = -L./external -lzip -lpugixml -lyaml-cpp -lpthread
+ifneq ($(filter $(MSYSTEM),MINGW64 MINGW32),)
+	EXTRA_LDFLAGS = -static -static-libgcc -static-libstdc++
+else
+	EXTRA_LDFLAGS =
+endif
+
 
 TEST = ./$(TARGET) --jobs full \
 		--xls_search_path test --yaml_search_path test --output_base_path test \
@@ -46,7 +52,7 @@ external/libpugixml.a:
 
 external/libyaml-cpp.a:
 ifneq ($(filter $(MSYSTEM),MINGW64 MINGW32),)
-	cd external/yaml-cpp && CMAKE_C_COMPILER=$(CC) CMAKE_CXX_COMPILER=$(CXX) cmake . -G "MinGW Makefiles"
+	cd external/yaml-cpp && cmake . -G "MSYS Makefiles"
 else
 	cd external/yaml-cpp && cmake .
 endif
@@ -57,7 +63,7 @@ endif
 	$(CXX) $(CPPFLAGS) -c $< -o $@
 
 $(TARGET): $(LIBS) $(OBJS)
-	$(CXX) $(OBJS) $(LDFLAGS) -o $@
+	$(CXX) $(OBJS) $(EXTRA_LDFLAGS) $(LDFLAGS) -o $@
 
 test-duplicate:
 	# duplicate symbol test

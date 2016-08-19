@@ -1,3 +1,7 @@
+skip_tags: true
+skip_commits:
+  files:
+    - .travis.yml
 platform:
   - x64
 install:
