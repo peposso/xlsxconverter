@@ -6,8 +6,8 @@ install:
   - C:\msys64\usr\bin\pacman --noconfirm --sync mingw-w64-x86_64-cmake
 build_script:
   - set MSYSTEM=MINGW64
-  - set CC=C:\msys64\mingw64\bin\gcc.exe
-  - set CXX=C:\msys64\mingw64\bin\g++.exe
+  - set CC=gcc
+  - set CXX=g++
   - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && make"
   - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && make test"
   - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && make release OS=windows ARCH=x86_64"
