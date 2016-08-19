@@ -57,7 +57,7 @@ endif
 	$(CXX) $(CPPFLAGS) -c $< -o $@
 
 $(TARGET): $(LIBS) $(OBJS)
-	$(CXX) $(CPPFLAGS) $< $(LDFLAGS) -o $@
+	$(CXX) $(OBJS) $(LDFLAGS) -o $@
 
 test-duplicate:
 	# duplicate symbol test
