@@ -22,6 +22,8 @@ ifeq ($(shell uname -s),Darwin)
 	OS = mac
 else ifeq ($(shell uname -s),Linux)
 	OS = linux
+else ifneq ($(filter $(MSYSTEM),MINGW64 MINGW32),)
+	OS = windows
 else
 	OS = other
 endif
@@ -44,7 +46,7 @@ external/libpugixml.a:
 
 external/libyaml-cpp.a:
 ifneq ($(filter $(MSYSTEM),MINGW64 MINGW32),)
-	cd external/yaml-cpp && CMAKE_C_COMPILER=$(CC) CMAKE_CXX_COMPILER=$(CXX) cmake . -G "MinGW Makefiles"
+	cd external/yaml-cpp && cmake . -G "MinGW Makefiles" CMAKE_C_COMPILER=$(CC) CMAKE_CXX_COMPILER=$(CXX)
 else
 	cd external/yaml-cpp && cmake .
 endif
