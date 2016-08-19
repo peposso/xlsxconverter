@@ -14,8 +14,10 @@ endif
 LDFLAGS = -L./external -lzip -lpugixml -lyaml-cpp -lpthread
 ifneq ($(filter $(MSYSTEM),MINGW64 MINGW32),)
 	EXTRA_LDFLAGS = -static -static-libgcc -static-libstdc++
+	EXE = .exe
 else
 	EXTRA_LDFLAGS =
+	EXE =
 endif
 
 
@@ -74,7 +76,7 @@ test-duplicate:
 
 test:
 	which ldd 2> /dev/null && ldd $(TARGET) || true
-	which otool 2> /dev/null && otool -L $(TARGET) ||true
+	which otool 2> /dev/null && otool -L $(TARGET) || true
 ifeq ($(CC),clang)
 	[ -e /cores ] && ulimit -c unlimited && ($(TEST) || (lldb -c `ls -t /cores/* | head -n1` --batch -o 'thread backtrace all' -o 'quit' && exit 1)) || $(TEST)
 else
@@ -96,5 +98,7 @@ clean:
 
 release: $(TARGET)
 	-rm $(RELEASE_NAME).zip
-	zip $(RELEASE_NAME).zip $(TARGET)
+	zip $(RELEASE_NAME).zip $(TARGET)$(EXE)
+	mkdir build
+	mv $(RELEASE_NAME).zip build
 .PHONY: release

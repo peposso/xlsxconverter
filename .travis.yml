@@ -26,7 +26,7 @@ after_success:
 notifications:
   email: false
 before_deploy:
-  - export RELEASE_PKG_FILE=$(ls *.zip)
+  - export RELEASE_PKG_FILE=$(ls build/*.zip)
   - echo "deploying $RELEASE_PKG_FILE to GitHub releases"
 deploy:
   provider: releases

@@ -19,7 +19,7 @@ all in repo.
 
 ## BUILD
 
-yaml-cpp requires cmake.
+[Latest Builds](https://github.com/peposso/xlsxconverter/releases)
 
 ### mac
 
