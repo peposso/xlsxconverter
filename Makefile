@@ -8,7 +8,7 @@ HEADERS = $(wildcard *.hpp) $(wildcard handlers/*.hpp) $(wildcard utils/*.hpp)
 
 CPPFLAGS = -std=c++11 -O3 -I. -I./external -I./external/ziplib/Source/ZipLib -I./external/pugixml -I./external/yaml-cpp/include
 ifneq ($(DEBUG),)
-	CPPFLAGS:=-g $(CPPFLAGS) -DDEBUG=$(DEBUG)
+	CPPFLAGS:=-g -fsanitize=address -fsanitize=leak -fno-omit-frame-pointer $(CPPFLAGS) -DDEBUG=$(DEBUG)
 endif
 
 LDFLAGS = -L./external -lzip -lpugixml -lyaml-cpp -lpthread

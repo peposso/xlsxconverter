@@ -14,7 +14,7 @@ build_script:
   - echo %PATH%
   - set MSYSTEM=MINGW64
   - C:\msys64\usr\bin\bash -l -c "echo $PATH"
-  - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && mingw32-make"
+  - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && mingw32-make DEBUG=1"
   - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && mingw32-make test"
   - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && mingw32-make release OS=windows ARCH=x86_64"
   - set MSYSTEM=MINGW32
