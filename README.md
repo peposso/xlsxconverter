@@ -3,6 +3,7 @@
 xlsx to data converter written in c++11.
 
 [![Build Status](https://travis-ci.org/peposso/xlsxconverter.svg?branch=master)](https://travis-ci.org/peposso/xlsxconverter)
+[![Build status](https://ci.appveyor.com/api/projects/status/mh6nqcgibro2nvho?svg=true)](https://ci.appveyor.com/project/peposso/xlsxconverter)
 
 
 ## EXTERNAL LIBRARIES
@@ -30,7 +31,7 @@ yaml-cpp requires cmake.
     $ docker -v /path/to/xlsxconverter:/storage -it ubuntu /bin/bash
     # cd /storage
     # apt-get install build-essential cmake
-    # make CC=gcc CXX=g++
+    # make
 
 ### windows
 
@@ -39,12 +40,12 @@ yaml-cpp requires cmake.
     $ pacman -S mingw-w64-x86_64-toolchain
     $ pacman -S mingw-w64-x86_64-cmake
     $ cd path/to/xlsxconverter
-    $ mingw32-make CC=gcc CXX=g++
+    $ mingw32-make
     for x86
     $ pacman -S mingw-w64-i686-toolchain
     $ pacman -S mingw-w64-i686-cmake
     $ cd path/to/xlsxconverter
-    $ mingw32-make CC=gcc CXX=g++
+    $ mingw32-make
 
 
 ## LICENSE

@@ -73,12 +73,12 @@ test-duplicate:
 	$(RM) test_link
 
 test:
-	which ldd && ldd $(TARGET) || true
-	which otool && otool -L $(TARGET) ||true
+	which ldd 2> /dev/null && ldd $(TARGET) || true
+	which otool 2> /dev/null && otool -L $(TARGET) ||true
 ifeq ($(CC),clang)
-	[ -e /cores ] && ulimit -c unlimited && ($(TEST) || (lldb -c `ls -t /cores/* | head -n1` --batch -o 'thread backtrace all' -o 'quit' && exit 1)) || ./$(TEST)
+	[ -e /cores ] && ulimit -c unlimited && ($(TEST) || (lldb -c `ls -t /cores/* | head -n1` --batch -o 'thread backtrace all' -o 'quit' && exit 1)) || $(TEST)
 else
-	./$(TEST)
+	$(TEST)
 endif
 	python test/check_json.py test/dummy1.json
 	python test/check_json.py test/dummy1fix.json
