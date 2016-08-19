@@ -1,13 +1,6 @@
 
 TARGET = xlsxconverter
 
-CC = clang
-CXX = clang++
-ifeq ($(OS),Windows_NT)
-  CC = gcc
-  CXX = g++
-endif
-
 SRCS = $(wildcard *.cpp)
 OBJS = $(SRCS:%.cpp=%.o)
 LIBS = external/libzip.a external/libpugixml.a external/libyaml-cpp.a

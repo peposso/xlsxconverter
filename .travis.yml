@@ -1,0 +1,17 @@
+language: cpp
+sudo: required
+dist: trusty
+compiler:
+- clang
+os:
+- linux
+- osx
+before_install:
+- echo $LANG
+- echo $LC_ALL
+before_script:
+script:
+- make test
+after_success:
+notifications:
+  email: false
