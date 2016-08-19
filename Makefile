@@ -73,7 +73,8 @@ test-duplicate:
 	$(RM) test_link
 
 test:
-ifneq ($(CC),clang)
+	lld $(TARGET)
+ifeq ($(CC),clang)
 	ulimit -c unlimited && ($(TEST) || (lldb -c `ls -t /cores/* | head -n1` --batch -o 'thread backtrace all' -o 'quit' && exit 1))
 else
 	$(TEST)
