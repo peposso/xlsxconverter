@@ -49,7 +49,7 @@ struct anytypeof : anytypeof_<T, std::tuple<A...> , sizeof...(A)-1> {};
 
 inline
 std::vector<std::string> split(const std::string& str, char delim) {
-    auto ss = std::istringstream(str);
+    std::istringstream ss(str);
     std::string item;
     std::vector<std::string> result;
     while (std::getline(ss, item, delim)) {

@@ -52,7 +52,7 @@ test-duplicate:
 	$(CXX) test_link1.o test_link2.o $(LDFLAGS) -o test_link
 	$(RM) test_link
 
-test: $(TARGET)
+test:
 	ulimit -c unlimited && ($(TEST) || (lldb -c `ls -t /cores/* | head -n1` --batch -o 'thread backtrace all' -o 'quit' && exit 1))
 	python test/check_json.py test/dummy1.json
 	python test/check_json.py test/dummy1fix.json

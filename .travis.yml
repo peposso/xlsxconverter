@@ -11,6 +11,7 @@ before_install:
 - echo $LC_ALL
 before_script:
 script:
+- make
 - make test
 after_success:
 notifications:
