@@ -1,28 +1,23 @@
 language: cpp
 sudo: required
-addons:
-  apt: &apt
-    sources:
-      - ubuntu-toolchain-r-test
-      - llvm-toolchain-precise-3.7
-      - llvm-toolchain-precise
+dist: trusty
 matrix:
   include:
     # gcc 5 on linux
-    - env: C_COMPILER=gcc-5 CXX_COMPILER=g++-5
+    - env: COMPILER=g++-5
       addons:
         apt:
-          <<: *apt
-          packages: gcc-5
-    # clang 3.7 on osx
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.7
+            - llvm-toolchain-precise
+          packages:
+            - gcc-5
+            - g++-5
+    # clang on osx
     - os: osx
-      osx_image: xcode7.1
-      env: C_COMPILER=clang CXX_COMPILER=clang++
-
+      compiler: clang
 before_install:
-  - 'if [[ "$TRAVIS_OS_NAME" == "osx" && "$CC" == "gcc" ]]; then brew install gcc; CC=gcc-5; fi'
-  - export CC=$C_COMPILER
-  - export CXX=$CXX_COMPILER
 before_script:
 script:
   - make
