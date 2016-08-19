@@ -81,7 +81,7 @@ struct TemplateHandler
     YamlConfig& config;
     std::stringstream buffer;
 
-    boost::optional<Mustache&> template_;
+    Mustache template_;
     Data records;
     Data current_record;
     Data current_record_fields;
@@ -89,11 +89,32 @@ struct TemplateHandler
     inline
     TemplateHandler(YamlConfig& config) 
         : config(config),
-          template_(boost::none),
+          template_((utils::readfile(config.handler.source))),
           records(Data::Type::List),
           current_record_fields(Data::Type::List),
           current_record()
-    {}
+    {
+        template_.registerFilter("upper", [](const Data* data, Mustache::Context* ctx) -> const Data* {
+            if (!data->isString()) return data;
+            return ctx->addPool(Data(upper_(data->stringValue())));
+        });
+        template_.registerFilter("lower", [](const Data* data, Mustache::Context* ctx) -> const Data* {
+            if (!data->isString()) return data;
+            return ctx->addPool(Data(lower_(data->stringValue())));
+        });
+        template_.registerFilter("snake_case", [](const Data* data, Mustache::Context* ctx) -> const Data* {
+            if (!data->isString()) return data;
+            return ctx->addPool(Data(snake_case_(data->stringValue())));
+        });
+        template_.registerFilter("upper_camel", [](const Data* data, Mustache::Context* ctx) -> const Data* {
+            if (!data->isString()) return data;
+            return ctx->addPool(Data(upper_camel_(data->stringValue())));
+        });
+        template_.registerFilter("lower_camel", [](const Data* data, Mustache::Context* ctx) -> const Data* {
+            if (!data->isString()) return data;
+            return ctx->addPool(Data(lower_camel_(data->stringValue())));
+        });
+    }
 
     inline static utils::mutex_map<std::string, Mustache>& template_cache() {
         static utils::mutex_map<std::string, Mustache> cache_;
@@ -103,35 +124,6 @@ struct TemplateHandler
     inline
     void begin() {
         buffer.clear();
-        auto& source = config.handler.source;
-        auto t = template_cache().get(source);
-        if (t != boost::none) {
-            template_ = t.value();
-            return;
-        }
-        Mustache tmpl(utils::readfile(source));
-        template_ = template_cache().emplace_ref(source, std::move(tmpl));
-
-        template_->registerFilter("upper", [](const Data* data, Mustache::Context* ctx) -> const Data* {
-            if (!data->isString()) return data;
-            return ctx->addPool(Data(upper_(data->stringValue())));
-        });
-        template_->registerFilter("lower", [](const Data* data, Mustache::Context* ctx) -> const Data* {
-            if (!data->isString()) return data;
-            return ctx->addPool(Data(lower_(data->stringValue())));
-        });
-        template_->registerFilter("snake_case", [](const Data* data, Mustache::Context* ctx) -> const Data* {
-            if (!data->isString()) return data;
-            return ctx->addPool(Data(snake_case_(data->stringValue())));
-        });
-        template_->registerFilter("upper_camel", [](const Data* data, Mustache::Context* ctx) -> const Data* {
-            if (!data->isString()) return data;
-            return ctx->addPool(Data(upper_camel_(data->stringValue())));
-        });
-        template_->registerFilter("lower_camel", [](const Data* data, Mustache::Context* ctx) -> const Data* {
-            if (!data->isString()) return data;
-            return ctx->addPool(Data(lower_camel_(data->stringValue())));
-        });
     }
 
     inline
@@ -200,15 +192,14 @@ struct TemplateHandler
             context = yaml2data(config.handler.context);
         }
         context.set("records", records);
-
-        buffer << template_.value().render(context);
+        buffer << template_.render(context);
     }
 
     inline
     void save() {
         utils::writefile(config.get_output_path(), buffer.str());
         if (!config.arg_config.quiet) {
-            utils::log(config.handler.path, " writed.");
+            utils::log("output: ", config.handler.path);
         }
     }
 };
