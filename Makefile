@@ -46,10 +46,14 @@ IS_CLANG = $(shell $(CC) -v 2>&1 | grep clang | head -n1)
 
 DEBUGGER =
 ifneq ($(IS_CLANG),)
+ifneq ($(shell which lldb 2>&1),)
 	DEBUGGER = lldb -k --batch -o 'run' -o 'thread backtrace all' -o 'quit' --
 endif
+endif
 ifneq ($(IS_GCC),)
+ifneq ($(shell which gdb 2>&1),)
 	DEBUGGER = gdb -batch -ex "run" -ex "thread apply all backtrace" -ex "quit" --args
+endif
 endif
 
 LDD = ldd
