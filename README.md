@@ -28,24 +28,26 @@ all in repo.
 
 ### linux
 
-    $ docker -v /path/to/xlsxconverter:/storage -it ubuntu /bin/bash
+    $ docker run -v /path/to/xlsxconverter:/storage -it ubuntu /bin/bash
     # cd /storage
     # apt-get install build-essential cmake
     # make
 
 ### windows
 
-    install msys2
-    for x86_64
+    for x86_64 (on msys2-mingw64)
     $ pacman -S mingw-w64-x86_64-toolchain
     $ pacman -S mingw-w64-x86_64-cmake
+    $ pacman -S make
     $ cd path/to/xlsxconverter
-    $ mingw32-make
-    for x86
+    $ make
+
+    for x86 (on msys2-mingw32)
     $ pacman -S mingw-w64-i686-toolchain
     $ pacman -S mingw-w64-i686-cmake
+    $ pacman -S make
     $ cd path/to/xlsxconverter
-    $ mingw32-make
+    $ make
 
 
 ## LICENSE

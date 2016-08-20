@@ -56,7 +56,7 @@ external/libpugixml.a:
 
 external/libyaml-cpp.a:
 ifneq ($(filter $(MSYSTEM),MINGW64 MINGW32),)
-	cd external/yaml-cpp && cmake . -G "MSYS Makefiles"
+	cd external/yaml-cpp && CC=$(CC) CXX=$(CXX) cmake . -G "MSYS Makefiles"
 else
 	cd external/yaml-cpp && cmake .
 endif

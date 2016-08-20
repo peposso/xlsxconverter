@@ -10,18 +10,24 @@ install:
   - C:\msys64\usr\bin\pacman --noconfirm --sync mingw-w64-x86_64-cmake
   - C:\msys64\usr\bin\pacman --noconfirm --sync mingw-w64-i686-toolchain
   - C:\msys64\usr\bin\pacman --noconfirm --sync mingw-w64-i686-cmake
+  - C:\msys64\usr\bin\pacman --noconfirm --sync make
 build_script:
   - set CC=gcc
   - set CXX=g++
   - set MSYSTEM=MINGW64
-  - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && mingw32-make"
-  # - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && mingw32-make test"
-  - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && mingw32-make release OS=windows ARCH=x86_64"
+  - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && make"
+  # - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && make test"
+  - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && make release OS=windows ARCH=x86_64"
   - set MSYSTEM=MINGW32
-  - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && mingw32-make clean"
-  - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && mingw32-make"
-  # - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && mingw32-make test"
-  - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && mingw32-make release OS=windows ARCH=x86"
+  - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && make clean"
+  - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && make"
+  # - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && make test"
+  - C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && make release OS=windows ARCH=x86"
 artifacts:
 - path: build/*.zip
   name: release
+deploy:
+- provider: GitHub
+  auth_token:
+    secure: fldiFphA0oJ+jLKjiDcH8NrfSfLg3Iz4UJy0I+goirqIiBcK/VRt0EP6hl2Uq29x
+  artifact: '*'
