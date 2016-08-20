@@ -18,9 +18,9 @@ else
 endif
 
 ifneq ($(DEBUG),)
-	CPPFLAGS:=-g -fsanitize=address -fsanitize=leak -fstack-protector-all -fno-omit-frame-pointer $(CPPFLAGS) -DDEBUG=$(DEBUG)
+	CPPFLAGS += -g -fsanitize=address -fstack-protector-all -fno-omit-frame-pointer $(CPPFLAGS) -DDEBUG=$(DEBUG)
 	# CPPFLAGS:=-g -fsanitize=thread -fstack-protector-all -fno-omit-frame-pointer $(CPPFLAGS) -DDEBUG=$(DEBUG)
-	LDFLAGS:=$(LDFLAGS) -lasan
+	LDFLAGS += -fsanitize=address
 endif
 
 TEST = ./$(TARGET)$(EXE) --jobs full \
