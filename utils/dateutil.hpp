@@ -13,7 +13,7 @@ namespace xlsxconverter {
 namespace utils {
 namespace dateutil {
 
-// on mingw, mktime, gmtime do not support negative time.
+// on mingw, gmtime does not support time before epoch - 12h. (1969-12-31T12:0:0)
 
 // SEE: http://alcor.concordia.ca/~gpkatch/gdate-algorithm.html
 inline int64_t make_days(int year, int month, int day) {

@@ -225,8 +225,8 @@ struct Converter
         {
             auto tz = config.arg_config.tz_seconds;
             if (cell.type == CT::kDateTime) {
-                auto time = cell.as_time(tz);
-                handler.field(field, utils::dateutil::isoformat(time, tz));
+                auto time = cell.as_time64(tz);
+                handler.field(field, utils::dateutil::isoformat64(time, tz));
                 return;
             }
             if (cell.type == CT::kEmpty && field.using_default) {
@@ -234,11 +234,11 @@ struct Converter
                 return;
             }
             if (cell.type == CT::kString) {
-                auto time = utils::dateutil::parse(cell.as_str(), tz);
+                auto time = utils::dateutil::parse64(cell.as_str(), tz);
                 if (time == utils::dateutil::ntime) {
                     throw EXCEPT("parsing datetime error.");
                 }
-                handler.field(field, utils::dateutil::isoformat(time, tz));
+                handler.field(field, utils::dateutil::isoformat64(time, tz));
                 return;
             }
             throw EXCEPT("type error. expect datetime.");
@@ -247,7 +247,7 @@ struct Converter
         {
             auto tz = config.arg_config.tz_seconds;
             if (cell.type == CT::kDateTime) {
-                auto time = cell.as_time(tz);
+                auto time = cell.as_time64(tz);
                 handler.field(field, time);
                 return;
             }
@@ -256,7 +256,7 @@ struct Converter
                 return;
             }
             if (cell.type == CT::kString) {
-                auto time = utils::dateutil::parse(cell.as_str(), tz);
+                auto time = utils::dateutil::parse64(cell.as_str(), tz);
                 if (time == utils::dateutil::ntime) {
                     throw EXCEPT("parsing datetime error.");
                 }

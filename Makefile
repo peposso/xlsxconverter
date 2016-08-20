@@ -53,7 +53,7 @@ ifneq ($(IS_GCC),)
 endif
 
 LDD = ldd
-ifneq ($(OS),mac)
+ifeq ($(OS),mac)
 	LDD = otool -L
 endif
 
