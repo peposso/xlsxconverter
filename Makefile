@@ -101,6 +101,6 @@ clean:
 release: $(TARGET)
 	-rm $(RELEASE_NAME).zip
 	which 7z 2> /dev/null && 7z a $(RELEASE_NAME).zip $(TARGET)$(EXE) || zip $(RELEASE_NAME).zip $(TARGET)$(EXE)
-	mkdir build
+	-mkdir build
 	mv $(RELEASE_NAME).zip build
 .PHONY: release
