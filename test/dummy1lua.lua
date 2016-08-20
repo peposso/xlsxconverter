@@ -61,7 +61,7 @@ return {
     },
     {
         fields = {
-            birthday = "1982-05-29T15:00:00+0900",
+            birthday = "1982-05-30T00:00:00+0900",
             country_code = "US",
             current_preference_id = 40,
             family_name = "かかか",
@@ -73,7 +73,7 @@ return {
     },
     {
         fields = {
-            birthday = "1920-04-07T15:00:00+0900",
+            birthday = "1920-04-08T00:00:00+0900",
             country_code = "JP",
             current_preference_id = 40,
             family_name = "ききき",
@@ -85,7 +85,7 @@ return {
     },
     {
         fields = {
-            birthday = "1951-03-01T15:00:00+0900",
+            birthday = "1951-03-02T00:00:00+0900",
             country_code = "FR",
             current_preference_id = 18,
             family_name = "くくく",
@@ -97,7 +97,7 @@ return {
     },
     {
         fields = {
-            birthday = "1919-06-27T15:00:00+0900",
+            birthday = "1919-06-28T00:00:00+0900",
             country_code = "FR",
             current_preference_id = 18,
             family_name = "けけけ",
@@ -109,7 +109,7 @@ return {
     },
     {
         fields = {
-            birthday = "1924-11-23T15:00:00+0900",
+            birthday = "1924-11-24T00:00:00+0900",
             country_code = "JP",
             current_preference_id = 18,
             family_name = "こここ",
@@ -121,7 +121,7 @@ return {
     },
     {
         fields = {
-            birthday = "1936-12-10T15:00:00+0900",
+            birthday = "1936-12-11T00:00:00+0900",
             country_code = "JP",
             current_preference_id = 18,
             family_name = "さささ",

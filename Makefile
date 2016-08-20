@@ -18,9 +18,9 @@ else
 endif
 
 ifneq ($(DEBUG),)
-	CPPFLAGS += -g -fsanitize=address -fstack-protector-all -fno-omit-frame-pointer $(CPPFLAGS) -DDEBUG=$(DEBUG)
+	CPPFLAGS += -O0 -g3 -fstack-protector-all -DDEBUG=$(DEBUG)
 	# CPPFLAGS:=-g -fsanitize=thread -fstack-protector-all -fno-omit-frame-pointer $(CPPFLAGS) -DDEBUG=$(DEBUG)
-	LDFLAGS += -fsanitize=address
+	LDFLAGS += -fstack-protector-all
 endif
 
 TEST = ./$(TARGET)$(EXE) --jobs full \
@@ -41,6 +41,21 @@ ARCH = $(shell uname -m)
 
 RELEASE_NAME = $(TARGET)-$(OS)-$(ARCH)-$(shell git rev-parse --short HEAD)
 
+IS_GCC = $(shell $(CC) -v 2>&1 | grep gcc | head -n1)
+IS_CLANG = $(shell $(CC) -v 2>&1 | grep clang | head -n1)
+
+DEBUGGER =
+ifneq ($(IS_CLANG),)
+	DEBUGGER = lldb -k --batch -o 'run' -o 'thread backtrace all' -o 'quit' --
+endif
+ifneq ($(IS_GCC),)
+	DEBUGGER = gdb -batch -ex "run" -ex "thread apply all backtrace" -ex "quit" --args
+endif
+
+LDD = ldd
+ifneq ($(OS),mac)
+	LDD = otool -L
+endif
 
 all: $(TARGET)
 
@@ -76,14 +91,14 @@ test-duplicate:
 	$(CXX) test_link1.o test_link2.o $(LDFLAGS) -o test_link
 	$(RM) test_link
 
+test-util:
+	$(CXX) $(CPPFLAGS) -O0 -g3 test/test_dateutil.cpp -o test-util.exe
+	$(DEBUGGER) ./test-util.exe
+	-rm test-util.exe
+
 test:
-	which ldd 2> /dev/null && ldd $(TARGET) || true
-	which otool 2> /dev/null && otool -L $(TARGET) || true
-ifeq ($(CC),clang)
-	[ -e /cores ] && ulimit -c unlimited && ($(TEST) || (lldb -c `ls -t /cores/* | head -n1` --batch -o 'thread backtrace all' -o 'quit' && exit 1)) || $(TEST)
-else
-	$(TEST)
-endif
+	$(LDD) $(TARGET)
+	$(DEBUGGER) $(TEST)
 	python test/check_json.py test/dummy1.json
 	python test/check_json.py test/dummy1fix.json
 	[ -e ../test.sh ] && ../test.sh || true

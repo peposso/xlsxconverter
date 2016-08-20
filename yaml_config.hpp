@@ -72,7 +72,7 @@ struct YamlConfig
     };
     struct Field {
         enum Type {
-            kError, kInt, kFloat, kBool, kChar, kDateTime, kForeignKey,
+            kError, kInt, kFloat, kBool, kChar, kDateTime, kUnixTime, kForeignKey,
         };
         struct Validate {
             bool unique = false;
@@ -112,6 +112,7 @@ struct YamlConfig
             else if (type_name == "bool") type = Type::kBool;
             else if (type_name == "char") type = Type::kChar;
             else if (type_name == "datetime") type = Type::kDateTime;
+            else if (type_name == "unixtime") type = Type::kUnixTime;
             else if (type_name == "foreignkey") type = Type::kForeignKey;
             else throw EXCEPTION("unknown field.type: ", type_name);
 

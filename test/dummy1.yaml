@@ -30,6 +30,10 @@ fields:
   name: "生年月日"
   type: datetime
 
+- column: birthday_time
+  name: "生年月日"
+  type: unixtime
+
 - column: preference_id
   name: "出身地"
   type: foreignkey

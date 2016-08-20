@@ -84,9 +84,9 @@ struct Converter
                 auto& cell = sheet.cell(config.row - 1, i);
                 // utils::log("i=", i, " name=",field.name, " cell=", cell.as_str());
                 if (cell.as_str() == field.name) {
-                    if (utils::contains(column_mapping, i)) {
-                        throw EXCEPTION(config.target, ": field=", field.column, ": duplicated.");
-                    }
+                    // if (utils::contains(column_mapping, i)) {
+                    //     throw EXCEPTION(config.target, ": field=", field.column, ": duplicated.");
+                    // }
                     column_mapping.push_back(i);
                     found = true;
                     break;
@@ -199,14 +199,14 @@ struct Converter
             }
             if (cell.type == CT::kString) {
                 auto s = cell.as_str();
-                if (s == "False" || s == "false" || s == "FALSE" || s == "No" || s == "no" || s == "No" || s == "0" || s == "0.0") {
+                if (s == "False" || s == "false" || s == "FALSE" || s == "No" || s == "no" || s == "NO" || s == "0" || s == "0.0") {
                     handler.field(field, false);
                 } else {
                     handler.field(field, true);
                 }
                 return;
             }
-            throw EXCEPT("type error. expect float.");
+            throw EXCEPT("type error. expect bool.");
         }
         else if (field.type == FT::kChar)
         {
@@ -241,7 +241,29 @@ struct Converter
                 handler.field(field, utils::dateutil::isoformat(time, tz));
                 return;
             }
-            throw EXCEPT("type error. expect float.");
+            throw EXCEPT("type error. expect datetime.");
+        }
+        else if (field.type == FT::kUnixTime)
+        {
+            auto tz = config.arg_config.tz_seconds;
+            if (cell.type == CT::kDateTime) {
+                auto time = cell.as_time(tz);
+                handler.field(field, time);
+                return;
+            }
+            if (cell.type == CT::kEmpty && field.using_default) {
+                handle_cell_default(handler, cell, field);
+                return;
+            }
+            if (cell.type == CT::kString) {
+                auto time = utils::dateutil::parse(cell.as_str(), tz);
+                if (time == utils::dateutil::ntime) {
+                    throw EXCEPT("parsing datetime error.");
+                }
+                handler.field(field, time);
+                return;
+            }
+            throw EXCEPT("type error. expect datetime.");
         }
         else if (field.type == FT::kForeignKey)
         {

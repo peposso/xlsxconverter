@@ -269,9 +269,9 @@ struct Cell
     }
 
     inline
-    time_t as_time(int tz_seconds=0) {
+    int64_t as_time64(int tz_seconds=0) {
         // xldate is double.
-        //   int-part: 0000-1-1 base days.
+        //   int-part: 1899-12-30 based days.
         //   frac-part: time seconds / (24*60*60).
         //   does not contain timezone info.
         auto xldatetime = as_double();
@@ -286,9 +286,13 @@ struct Cell
         } else if (seconds < -0.1) {
             seconds -= 0.5;
         }
-        // 25569 is epoch days. (time_t is epoch based-seconds.)
-        time_t time = (xldays - 25569) * 86400 + seconds;
-        return time - tz_seconds;
+        // (1970-1-1) - (1899-12-30) = 25569 days.
+        return (xldays - 25569) * 86400 + seconds - tz_seconds;
+    }
+
+    inline
+    time_t as_time(int tz_seconds=0) {
+        return as_time64(tz_seconds);
     }
 
     inline
