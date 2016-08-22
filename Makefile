@@ -24,9 +24,7 @@ ifneq ($(DEBUG),)
 endif
 
 TEST = ./$(TARGET)$(EXE) --jobs full \
-		--xls_search_path test --yaml_search_path test --output_base_path test \
-		--timezone '+0900' \
-		dummy1.yaml dummy1fix.yaml dummy1csv.yaml dummy1lua.yaml countrytmpl.yaml
+		--xls_search_path test --yaml_search_path test --output_base_path test --timezone '+0900'
 
 ifeq ($(shell uname -s),Darwin)
 	OS = mac
@@ -47,7 +45,7 @@ IS_CLANG = $(shell $(CC) -v 2>&1 | grep clang | head -n1)
 DEBUGGER =
 ifneq ($(IS_CLANG),)
 ifneq ($(shell which lldb 2>/dev/null),)
-	DEBUGGER = lldb -k --batch -o 'run' -o 'thread backtrace all' -o 'quit' --
+	DEBUGGER = lldb -k --batch -o "run" -o "thread backtrace all" -o "quit" --
 endif
 endif
 ifneq ($(IS_GCC),)
@@ -96,7 +94,7 @@ test-duplicate:
 	$(RM) test_link
 
 test-util:
-	$(CXX) $(CPPFLAGS) -O0 -g3 test/test_dateutil.cpp -o test-util.exe
+	$(CXX) $(CPPFLAGS) -O0 -g3 test/test_fs.cpp -o test-util.exe
 	$(DEBUGGER) ./test-util.exe
 	-rm test-util.exe
 

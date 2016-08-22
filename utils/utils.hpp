@@ -70,71 +70,6 @@ std::vector<std::string> split(const std::string& str, char delim, A...a) {
     }
     return result;
 }
-inline
-bool fexists(const std::string& name) {
-    struct stat statbuf;
-    return ::stat(name.c_str(), &statbuf) == 0;
-}
-inline
-bool isabspath(const std::string& name) {
-    if (name.empty()) return false;
-    char c = name[0];
-    if (c == '/') return true;
-    if (name.size() == 1) return false;
-    if (std::isalpha(c) && name[1] == ':') {
-        if (name.size() == 2) return true;
-        if (name[2] == '/' || name[2] == '\\') return true;
-    }
-    if (c == '\\' && name[1] == '\\') return true;
-    return false;
-}
-inline
-std::string dirname(const std::string& name) {
-    auto p1 = name.rfind('/');
-    auto p2 = name.rfind('\\');
-    if (p1 == std::string::npos && p1 == std::string::npos) return "";
-    if (p1 != std::string::npos) return name.substr(0, p1);
-    return name.substr(0, p2);
-}
-
-inline
-void mkdirp(const std::string& name) {
-    if (name.empty()) return;
-    auto names = split(name, '/', '\\');
-    #ifdef WIN32
-    auto sep = '\\';
-    #else
-    auto sep = '/';
-    #endif
-    std::string path;
-    if (isabspath(name)) {
-        path = names[0];
-        names.erase(names.begin());
-    }
-    for (auto n: names) {
-        path = path.empty() ? n : path + sep + n;
-        if (!fexists(path)) {
-            #ifdef _WIN32
-            ::mkdir(path.c_str());
-            #else
-            ::mkdir(path.c_str(), 0755);
-            #endif
-        } 
-    }
-}
-inline
-std::string readfile(const std::string& name) {
-    auto fi = std::ifstream(name.c_str(), std::ios::binary);
-    std::stringstream ss;
-    ss << fi.rdbuf();
-    return ss.str();
-}
-inline
-void writefile(const std::string& name, const std::string& content) {
-    mkdirp(dirname(name));
-    auto fo = std::ofstream(name.c_str(), std::ios::binary);
-    fo << content;
-}
 
 template<class T>
 bool contains(const std::vector<T> vec, const T& value) {
@@ -327,6 +262,10 @@ struct mutex_list
         std::lock_guard<M> lock(mutex);
         return list.empty();
     }
+    inline size_t size() {
+        std::lock_guard<M> lock(mutex);
+        return list.size();
+    }
     template<class F> bool any(F f) {
         std::lock_guard<M> lock(mutex);
         for (auto& e: list) {
@@ -356,12 +295,12 @@ struct mutex_map
     {}
     inline void emplace(K k, V v) {
         std::lock_guard<M> lock(mutex);
-        map.emplace(std::move(k), std::move(v));
+        map.emplace(k, v);
     }
-    inline V& emplace_ref(K k, V v) {
+    inline V& emplace_ref(K k, V&& v) {
         std::lock_guard<M> lock(mutex);
         map.emplace(k, std::move(v));
-        auto it = map.find(k);
+        const auto& it = map.find(k);
         return it->second;
     }
     inline boost::optional<V> get(const K& k) {
@@ -370,9 +309,15 @@ struct mutex_map
         if (it == map.end()) return boost::none;
         return it->second;
     }
-    inline bool has(const K& k) {
+    inline boost::optional<V&> getref(const K& k) {
         std::lock_guard<M> lock(mutex);
         auto it = map.find(k);
+        if (it == map.end()) return boost::none;
+        return it->second;
+    }
+    inline bool has(const K& k) {
+        std::lock_guard<M> lock(mutex);
+        const auto& it = map.find(k);
         return it != map.end();
     }
     inline bool empty() {

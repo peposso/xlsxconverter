@@ -152,7 +152,7 @@ struct Converter
         using FT = YamlConfig::Field::Type;
         using CT = xlsx::Cell::Type;
 
-        #define EXCEPT(...) EXCEPTION(config.target, ": field=", field.column, ": cell(", cell.row, ",", cell.col, \
+        #define EXCEPT(...) EXCEPTION(config.path, ": target=", config.target, ": field=", field.column, ": cell(", cell.row, ",", cell.col, \
                                       "){value=", cell.as_str(), ",type=", cell.type_name(), "}: ", __VA_ARGS__)
 
         if (field.type == FT::kInt)
@@ -276,6 +276,10 @@ struct Converter
                 return;
             }
             auto& relmap = relation.value();
+            if (relmap.id != field.relation->id) {
+                throw EXCEPT("relation maps was broken. id=", relmap.id);
+            }
+
             if (relmap.key_type == FT::kChar) {;
                 if (relmap.column_type == FT::kInt) {
                     try {
@@ -304,7 +308,8 @@ struct Converter
                     throw EXCEPT("usable relation type maps are (char -> int), (int -> int).");
                 }
             } else {
-                throw EXCEPT("usable relation type maps are (char -> int), (int -> int).");
+                throw EXCEPT("usable relation type maps are (char -> int), (int -> int). (",
+                             relmap.key_type_name, " -> ", relmap.column_type_name, ")");
             }
         }
 

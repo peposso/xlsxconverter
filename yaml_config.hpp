@@ -147,7 +147,7 @@ struct YamlConfig
     : path(path_), arg_config(arg_config_)
     {
         std::string fullpath = arg_config.yaml_search_path + "/" + path;
-        if (!utils::fexists(fullpath)) {
+        if (!utils::fs::exists(fullpath)) {
             throw EXCEPTION("yaml=", fullpath, " does not exist.");
         }
         auto doc = YAML::LoadFile(fullpath.c_str());

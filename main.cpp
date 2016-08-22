@@ -25,24 +25,39 @@ struct Task
         {}
     };
     using lock_guard = std::lock_guard<std::mutex>;
-    utils::mutex_list<std::string> targets;
-    utils::mutex_list<YamlConfig> yaml_configs;
-    utils::mutex_list<YamlConfig::Field::Relation> relations;
-    utils::mutex_list<RelationYaml> relation_yamls;
+    utils::mutex_list<std::string, utils::spinlock> targets;
+    utils::mutex_list<YamlConfig, utils::spinlock> yaml_configs;
+    utils::mutex_list<YamlConfig::Field::Relation, utils::spinlock> relations;
+    utils::mutex_list<RelationYaml, utils::spinlock> relation_yamls;
 
     ArgConfig& arg_config;
     bool canceled;
     std::mutex phase1_done;
     std::mutex phase2_done;
     std::mutex phase3_done;
+    std::atomic_int phase1_running;
+    std::atomic_int phase2_running;
+    std::atomic_int phase3_running;
 
-    Task(ArgConfig& arg_config)
+    Task(ArgConfig& arg_config, int jobs)
         : canceled(false),
           arg_config(arg_config)
     {
+        if (arg_config.targets.empty() && arg_config.yaml_search_path != ".") {
+            for (auto& target: utils::fs::walk(arg_config.yaml_search_path, "*.yaml")) {
+                targets.push_back(target);
+            }
+        } else {
+            for (auto& target: arg_config.targets) {
+                targets.push_back(target);
+            }
+        }
         phase1_done.lock();
         phase2_done.lock();
         phase3_done.lock();
+        phase1_running = jobs;
+        phase2_running = jobs;
+        phase3_running = jobs;
     }
 
     void run() {
@@ -73,8 +88,7 @@ struct Task
 
     void phase1() {
         while (!canceled) {
-            bool last = false;
-            auto target = targets.move_front(&last);
+            auto target = targets.move_front();
             if (target == boost::none) break;
 
             auto yaml_config = YamlConfig(target.value(), arg_config);
@@ -84,14 +98,14 @@ struct Task
                 }
             }
             yaml_configs.push_back(std::move(yaml_config));
-
-            if (last) {
-                if (relations.empty()) {
-                    phase3_done.unlock();
-                    phase2_done.unlock();
-                }
-                phase1_done.unlock();
+        }
+        --phase1_running;
+        if (phase1_running.load() == 0) {
+            if (relations.empty()) {
+                phase3_done.unlock();
+                phase2_done.unlock();
             }
+            phase1_done.unlock();
         }
     }
     void phase2() {
@@ -100,6 +114,9 @@ struct Task
             auto relation = relations.move_front(&last);
             if (relation == boost::none) break;
 
+            // if (!arg_config.quiet) {
+            //     utils::log("rel_yaml: ", relation->from);
+            // }
             auto yaml_config = YamlConfig(relation->from, arg_config);
             for (auto rel: yaml_config.relations()) {
                 if (!relations.any(id_functor(rel.id)) && !relation_yamls.any(id_functor(rel.id))) {
@@ -111,61 +128,73 @@ struct Task
 
             if (last) phase2_done.unlock();
         }
+        --phase2_running;
+        if (phase2_running.load() == 0) {
+            phase2_done.unlock();
+        }
     }
     void phase3() {
         while (!canceled) {
-            bool last = false;
-            auto rel_yaml = relation_yamls.move_back(&last);
+            auto rel_yaml = relation_yamls.move_back();
             if (rel_yaml == boost::none) break;
 
             auto rel = std::move(rel_yaml->relation);
             auto yaml_config = std::move(rel_yaml->yaml_config);
 
+            if (handlers::RelationMap::has_cache(rel)) {
+                continue;
+            }
             auto relmap = handlers::RelationMap(rel, yaml_config);
             Converter(yaml_config, true).run(relmap);
             handlers::RelationMap::store_cache(std::move(relmap));
-
-            if (last) phase3_done.unlock();
+        }
+        --phase3_running;
+        if (phase3_running.load() == 0) {
+            phase3_done.unlock();
         }
     }
     void phase4() {
         while (!canceled) {
             bool last = false;
-            auto yaml_config = yaml_configs.move_front(&last);
-            if (yaml_config == boost::none) break;
+            auto yaml_config_opt = yaml_configs.move_front(&last);
+            if (yaml_config_opt == boost::none) break;
+            auto& yaml_config = yaml_config_opt.value();
 
-            // if (!arg_config.quiet) {
-            //     utils::log("convert: ", yaml_config->path);
-            // }
-            auto converter = Converter(yaml_config.value());
-            switch (yaml_config->handler.type) {
+            if (yaml_config.handler.type == YamlConfig::Handler::Type::kNone) {
+                if (!arg_config.quiet) {
+                    utils::log("skip: ", yaml_config.path);
+                }
+                continue;
+            }
+            auto converter = Converter(yaml_config);
+            switch (yaml_config.handler.type) {
                 case YamlConfig::Handler::Type::kJson: {
-                    auto handler = handlers::JsonHandler(yaml_config.value());
+                    auto handler = handlers::JsonHandler(yaml_config);
                     converter.run(handler);
                     break;
                 }
                 case YamlConfig::Handler::Type::kDjangoFixture: {
-                    auto handler = handlers::DjangoFixtureHandler(yaml_config.value());
+                    auto handler = handlers::DjangoFixtureHandler(yaml_config);
                     converter.run(handler);
                     break;
                 }
                 case YamlConfig::Handler::Type::kCSV: {
-                    auto handler = handlers::CSVHandler(yaml_config.value());
+                    auto handler = handlers::CSVHandler(yaml_config);
                     converter.run(handler);
                     break;
                 }
                 case YamlConfig::Handler::Type::kLua: {
-                    auto handler = handlers::LuaHandler(yaml_config.value());
+                    auto handler = handlers::LuaHandler(yaml_config);
                     converter.run(handler);
                     break;
                 }
                 case YamlConfig::Handler::Type::kTemplate: {
-                    auto handler = handlers::TemplateHandler(yaml_config.value());
+                    auto handler = handlers::TemplateHandler(yaml_config);
                     converter.run(handler);
                     break;
                 }
                 default: {
-                    throw EXCEPTION(yaml_config->path, ": handler.type=", yaml_config->handler.type_name,
+                    throw EXCEPTION(yaml_config.path, ": handler.type=", yaml_config.handler.type_name,
                                     ": not implemented.");
                 }
             }
@@ -188,25 +217,21 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    if (arg_config->targets.size() == 0) {
+    if (arg_config->targets.empty() && arg_config->yaml_search_path == ".") {
         std::cerr << ArgConfig::help() << std::endl;
         return 1;
     }
-
-    std::list<std::string> targets;
 
     int jobs = arg_config->jobs;
     if (!arg_config->quiet) {
         utils::log("jobs: ", jobs);
     }
-    if (jobs > targets.size()) {
-        jobs = targets.size();
-    }
 
-    Task task(arg_config.value());
-    for (auto& target: arg_config->targets) {
-        task.targets.push_back(target);
-    }
+    Task task(arg_config.value(), jobs);
+
+    // if (jobs > task.targets.size()) {
+    //     jobs = task.targets.size();
+    // }
 
     auto work = std::function<void(void)>([&]() {
         #ifndef DEBUG
@@ -217,6 +242,9 @@ int main(int argc, char** argv)
         } catch (std::exception& exc) {
             utils::logerr("exception: ", exc.what());
             task.canceled = true;
+            task.phase1_done.unlock();
+            task.phase2_done.unlock();
+            task.phase3_done.unlock();
             return;
         }
         #endif

@@ -15,16 +15,13 @@ namespace handlers {
 
 struct RelationMap
 {
-    static std::vector<RelationMap>& cache() {
-        static std::vector<RelationMap> cache_;
+    inline static utils::mutex_map<std::string, RelationMap>& cache() {
+        static utils::mutex_map<std::string, RelationMap> cache_;
         return cache_;
-    }
-    static std::mutex& cache_mtx() {
-        static std::mutex cache_mtx_;
-        return cache_mtx_;
     }
 
     YamlConfig& config;
+    std::string id;
     std::string column;
     std::string from;
     std::string key;
@@ -54,6 +51,8 @@ struct RelationMap
         : column(relation.column),
           from(relation.from),
           key(relation.key),
+          id(relation.id),
+          column_type_name(), key_type_name(),
           config(config_)
     {
         for (int i = 0; i < config.fields.size(); ++i) {
@@ -81,26 +80,29 @@ struct RelationMap
 
     inline static
     bool has_cache(YamlConfig::Field::Relation& relation) {
-        std::lock_guard<std::mutex> lock(cache_mtx());
-        for (auto& rel: cache()) {
-            if (rel == relation) return true;
-        }
-        return false;
+        return cache().has(relation.id);;
     }
 
     inline static
     RelationMap& find_cache(YamlConfig::Field::Relation& relation) {
-        std::lock_guard<std::mutex> lock(cache_mtx());
-        for (auto& rel: cache()) {
-            if (rel == relation) return rel;
+        auto relmap = cache().getref(relation.id);
+        if (relmap == boost::none) {
+            {
+                std::lock_guard<decltype(cache().mutex)> lock(cache().mutex);
+                for (const auto& kv: cache().map) {
+                    utils::logerr("cache-key=", kv.first);
+                }
+            }
+            throw EXCEPTION("relation_map ", relation.id, " is NOT exists.");
         }
-        throw EXCEPTION("relation_map is NOT exists.");
+        assert(relmap->id == relation.id);
+        return relmap.value();
     }
 
     inline static
-    void store_cache(RelationMap relmap) {
-        std::lock_guard<std::mutex> lock(cache_mtx());
-        cache().push_back(std::move(relmap));
+    void store_cache(RelationMap&& relmap) {
+        auto id = relmap.id;
+        cache().emplace(relmap.id, std::move(relmap));
     }
 
     inline bool operator==(YamlConfig::Field::Relation& relation) {

@@ -20,6 +20,7 @@
 *.lib
 *.ilk
 *.pdb
+*.dSYM/
 
 # Visual Studio files
 Obj/**

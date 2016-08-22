@@ -89,7 +89,7 @@ struct TemplateHandler
     inline
     TemplateHandler(YamlConfig& config) 
         : config(config),
-          template_((utils::readfile(config.handler.source))),
+          template_((utils::fs::readfile(config.handler.source))),
           records(Data::Type::List),
           current_record_fields(Data::Type::List),
           current_record()
@@ -197,7 +197,7 @@ struct TemplateHandler
 
     inline
     void save() {
-        utils::writefile(config.get_output_path(), buffer.str());
+        utils::fs::writefile(config.get_output_path(), buffer.str());
         if (!config.arg_config.quiet) {
             utils::log("output: ", config.handler.path);
         }
