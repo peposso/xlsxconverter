@@ -102,7 +102,7 @@ struct RelationMap
     inline static
     void store_cache(RelationMap&& relmap) {
         auto id = relmap.id;
-        cache().emplace(relmap.id, std::move(relmap));
+        cache().emplace(id, std::move(relmap));
     }
 
     inline bool operator==(YamlConfig::Field::Relation& relation) {

@@ -10,6 +10,10 @@
 #include <fstream>
 #include <iomanip>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 namespace xlsxconverter {
 namespace utils {
 namespace fs {
@@ -167,7 +171,54 @@ struct iterdir
         bool isfile = false;
         bool isdir = false;
         bool islink = false;
+        uint64_t size_ = 0;
     };
+    #ifdef _WIN32
+    struct iterator : public std::iterator<std::input_iterator_tag, entry>
+    {
+        std::string dirname;
+        std::string filter;
+        HANDLE hfind = INVALID_HANDLE_VALUE;
+        WIN32_FIND_DATA find_data;
+        entry current;
+        int index;
+        inline iterator(const std::string& dirname, const std::string& filter, int index = 0)
+            : dirname(dirname), filter(filter), current(), index(index),
+              hfind(INVALID_HANDLE_VALUE)
+        {
+            current.dirname = dirname;
+            if (index < 0) return;
+            std::string glob_path;
+            if (filter.empty()) {
+                glob_path = joinpath(dirname, "*.*");
+            } else {
+                glob_path = joinpath(dirname, filter);
+            }
+            hfind = ::FindFirstFile(glob_path.c_str(), &find_data);
+        }
+        inline ~iterator() {
+            if (hfind != INVALID_HANDLE_VALUE) ::FindClose(hfind);;
+        }
+        inline entry& operator*() {
+            current.name = find_data.cFileName;
+            current.isdir = find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY;
+            current.isfile = !current.isdir;
+            current.size_ = ((uint64_t)find_data.nFileSizeHigh << 32) | (uint64_t)find_data.nFileSizeLow;
+            return current;
+        }
+        inline iterator& operator++() {
+            if (index < 0 || hfind == INVALID_HANDLE_VALUE) return *this;
+            if (!::FindNextFile(hfind, &find_data)) {
+                index = -1;
+            }
+            return *this;
+        }
+        inline bool operator!=(const iterator& it) {
+            return index != it.index || dirname != it.dirname;
+        }
+        inline bool ends() { return index == -1; }
+    };
+    #else
     struct iterator : public std::iterator<std::input_iterator_tag, entry>
     {
         std::string dirname;
@@ -212,6 +263,7 @@ struct iterdir
         }
         inline bool ends() { return index == -1; }
     };
+    #endif
 
     std::string dirname;
     std::string filter;

@@ -98,7 +98,7 @@ test-util:
 	$(DEBUGGER) ./test-util.exe
 	-rm test-util.exe
 
-test:
+test: $(TARGET)
 	$(LDD) $(TARGET)
 	$(DEBUGGER) $(TEST)
 	python test/check_json.py test/dummy1.json

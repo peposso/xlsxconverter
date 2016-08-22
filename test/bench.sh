@@ -13,21 +13,21 @@ TARGETS='dummy1.yaml dummy1fix.yaml dummy1csv.yaml dummy1lua.yaml'
 #     ssconvert ${ARGS1} ${TARGETS} 1>/dev/null 2>/dev/null
 # done
 
+echo "--------------------------------"
+echo "c++ xlsxconverter... jobs 4"
+time for i in {1..30}; do
+    ./xlsxconverter --jobs 4 ${ARGS2} ${TARGETS}
+done
+
 # echo "--------------------------------"
-# echo "c++ xlsxconverter... jobs 4"
+# echo "c++ xlsxconverter... jobs 2"
 # time for i in {1..20}; do
-#     ./xlsxconverter --jobs 4 ${ARGS2} ${TARGETS}
+#     ./xlsxconverter --jobs 2 ${ARGS2} ${TARGETS}
 # done
 
-echo "--------------------------------"
-echo "c++ xlsxconverter... jobs 2"
-time for i in {1..20}; do
-    ./xlsxconverter --jobs 2 ${ARGS2} ${TARGETS}
-done
-
-echo "--------------------------------"
-echo "c++ xlsxconverter... jobs 1"
-time for i in {1..20}; do
-    ./xlsxconverter --jobs 1 ${ARGS2} ${TARGETS}
-done
+# echo "--------------------------------"
+# echo "c++ xlsxconverter... jobs 1"
+# time for i in {1..20}; do
+#     ./xlsxconverter --jobs 1 ${ARGS2} ${TARGETS}
+# done
 
