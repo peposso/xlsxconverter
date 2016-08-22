@@ -93,6 +93,10 @@ struct Task
 
             auto yaml_config = YamlConfig(target.value(), arg_config);
             for (auto rel: yaml_config.relations()) {
+                std::string fullpath = utils::fs::joinpath(arg_config.yaml_search_path, rel.from);
+                if (!utils::fs::exists(fullpath)) {
+                    throw EXCEPTION(target.value(), ": relational_yaml=", fullpath, " does not exist.");
+                }
                 if (!relations.any(id_functor(rel.id))) {
                     relations.push_back(std::move(rel));
                 }
