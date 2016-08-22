@@ -114,8 +114,7 @@ struct Task
     }
     void phase2() {
         while (!canceled) {
-            bool last = false;
-            auto relation = relations.move_front(&last);
+            auto relation = relations.move_front();
             if (relation == boost::none) break;
 
             // if (!arg_config.quiet) {
@@ -159,8 +158,7 @@ struct Task
     }
     void phase4() {
         while (!canceled) {
-            bool last = false;
-            auto yaml_config_opt = yaml_configs.move_front(&last);
+            auto yaml_config_opt = yaml_configs.move_front();
             if (yaml_config_opt == boost::none) break;
             auto& yaml_config = yaml_config_opt.value();
 
