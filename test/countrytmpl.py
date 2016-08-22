@@ -56,3 +56,4 @@ class Country(enum.Enum):
     Miyazaki = 45
     Kagoshima = 46
     Okinawa = 47
+    ThankYou4YourKindness = 999

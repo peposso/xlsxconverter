@@ -124,12 +124,9 @@ struct Task
             for (auto rel: yaml_config.relations()) {
                 if (!relations.any(id_functor(rel.id)) && !relation_yamls.any(id_functor(rel.id))) {
                     relations.push_back(std::move(rel));
-                    last = false;
                 }
             }
             relation_yamls.push_back(RelationYaml(relation->id, std::move(yaml_config), std::move(relation.value())));
-
-            if (last) phase2_done.unlock();
         }
         --phase2_running;
         if (phase2_running.load() == 0) {

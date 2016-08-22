@@ -242,20 +242,18 @@ struct mutex_list
         std::lock_guard<M> lock(mutex);
         list.push_back(std::move(t));
     }
-    inline boost::optional<T> move_front(bool* last_ptr=nullptr) {
+    inline boost::optional<T> move_front() {
         std::lock_guard<M> lock(mutex);
         if (list.empty()) return boost::none;
         T t = std::move(list.front());
         list.pop_front();
-        if (last_ptr != nullptr) *last_ptr = list.empty();
         return t;
     }
-    inline boost::optional<T> move_back(bool* last_ptr=nullptr) {
+    inline boost::optional<T> move_back() {
         std::lock_guard<M> lock(mutex);
         if (list.empty()) return boost::none;
         T t = std::move(list.back());
         list.pop_back();
-        if (last_ptr != nullptr) *last_ptr = list.empty();
         return t;
     }
     inline bool empty() {

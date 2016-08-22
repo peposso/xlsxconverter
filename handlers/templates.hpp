@@ -40,31 +40,38 @@ inline std::string upper_(const std::string& s) {
     }
     return r;
 }
+// camelCaseString -> camel_case_string
+// Test1TTest_Abc -> test1_ttest_abc
 inline std::string snake_case_(const std::string& s) {
     std::string r;
     for (auto it = s.begin(); it != s.end(); ++it) {
-        if (it != s.begin() && islower_(*(it-1)) && isupper_(*it)) r.push_back('_');
+        if (it != s.begin() && *(it-1) != '_' && !isupper_(*(it-1)) && isupper_(*it)) r.push_back('_');
         if (isupper_(*it)) r.push_back(*it - 'A' + 'a');
         else r.push_back(*it);
     }
     return r;
 }
+// snake_case_string -> snakeCaseString
+// _thank_you4your__kindness -> ThankYou4YourKindness
 inline std::string lower_camel_(const std::string& s) {
     std::string r;
     for (auto it = s.begin(); it != s.end(); ++it) {
         if (*it == '_') continue;
-        if (it != s.begin() && *(it-1) == '_' && islower_(*it)) r.push_back(*it - 'a' + 'A');
+        if (it != s.begin() && !std::isalpha(*(it-1)) && islower_(*it)) r.push_back(*it - 'a' + 'A');
         else if (it != s.begin() && std::isalpha(*(it-1)) && isupper_(*it)) r.push_back(*it - 'A' + 'a');
         else r.push_back(*it);
     }
     return r;
 }
+// snake_case_string -> SnakeCaseString
+// _thank_you4your__kindness -> ThankYou4YourKindness
 inline std::string upper_camel_(const std::string& s) {
     std::string r;
     for (auto it = s.begin(); it != s.end(); ++it) {
         if (*it == '_') continue;
+        auto b = *(it-1);
         if (it == s.begin() && islower_(*it)) r.push_back(*it - 'a' + 'A');
-        else if (it != s.begin() && *(it-1) == '_' && islower_(*it)) r.push_back(*it - 'a' + 'A');
+        else if (it != s.begin() && !std::isalpha(*(it-1)) && islower_(*it)) r.push_back(*it - 'a' + 'A');
         else if (it != s.begin() && std::isalpha(*(it-1)) && isupper_(*it)) r.push_back(*it - 'A' + 'a');
         else r.push_back(*it);
     }
