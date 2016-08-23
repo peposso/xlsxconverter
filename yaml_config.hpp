@@ -33,7 +33,6 @@ struct YamlConfig
         bool allow_non_ascii = false;
         // for csv
         boost::optional<int> comment_row = boost::none;
-        boost::optional<std::unordered_map<std::string, std::string>> type_name_mapping = boost::none;
         bool csv_field_type = false;
         bool csv_field_column = false;
         YAML::Node context;
@@ -58,13 +57,6 @@ struct YamlConfig
             if (auto n = node["allow_non_ascii"]) allow_non_ascii = n.as<bool>();
 
             if (auto n = node["comment_row"]) comment_row = n.as<int>();
-            if (auto n = node["type_name_mapping"]) {
-                auto map = std::unordered_map<std::string, std::string>();
-                for (const auto& it: n) {
-                    map.emplace(it.first.as<std::string>(), it.second.as<std::string>());
-                }
-                type_name_mapping = std::move(map);
-            }
             if (auto n = node["csv_field_type"]) csv_field_type = n.as<bool>();
             if (auto n = node["csv_field_column"]) csv_field_column = n.as<bool>();
             context = node["context"];
@@ -93,6 +85,7 @@ struct YamlConfig
             }
         };
         std::string type_name;
+        std::string type_alias;
         Type type;
         std::string column;
         std::string name;
@@ -115,6 +108,8 @@ struct YamlConfig
             else if (type_name == "unixtime") type = Type::kUnixTime;
             else if (type_name == "foreignkey") type = Type::kForeignKey;
             else throw EXCEPTION("unknown field.type: ", type_name);
+
+            if (auto o = node["type_alias"]) type_alias = o.as<std::string>();
 
             if (auto n = node["default"]) {
                 using_default = true;

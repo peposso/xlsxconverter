@@ -50,17 +50,18 @@ struct CSVHandler
     inline
     void write_field_info_row() {
         if (config.handler.csv_field_type) {
-            auto& map = config.handler.type_name_mapping;
             begin_row();
             for (auto& f: config.fields) {
-                auto type_name = f.type_name;
-                if (f.type == YamlConfig::Field::Type::kForeignKey) {
-                    auto& relmap = RelationMap::find_cache(f.relation.value());
-                    type_name = relmap.column_type_name;
-                }
-                if (map != boost::none) {
-                    auto it = map->find(type_name);
-                    if (it != map->end()) type_name = it->second;
+                std::string type_name;
+                if (f.type_alias.empty()) {
+                    if (f.type == YamlConfig::Field::Type::kForeignKey) {
+                        auto& relmap = RelationMap::find_cache(f.relation.value());
+                        type_name = relmap.column_type_name;
+                    } else {
+                        type_name = f.type_name;
+                    }
+                } else {
+                    type_name = f.type_alias;
                 }
                 field(f, type_name);
             }

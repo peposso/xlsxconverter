@@ -7,7 +7,6 @@ handler:
   comment_row: 5
   csv_field_type: true
   csv_field_column: true
-  type_name_mapping: {char: string, datetime: string}
 
 fields:
 - column: id
@@ -19,19 +18,23 @@ fields:
 - column: country_code
   name: "国籍"
   type: char
+  type_alias: string
   default: "JP"
 
 - column: family_name
   name: "姓"
   type: char
+  type_alias: string
 
 - column: first_name
   name: "名"
   type: char
+  type_alias: string
 
 - column: birthday
   name: "生年月日"
   type: datetime
+  type_alias: string
 
 - column: preference_id
   name: "出身地"
