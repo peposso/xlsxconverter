@@ -215,8 +215,26 @@ struct YamlConfig
     }
 
     inline
-    std::string get_xls_path() {
-        return arg_config.xls_search_path + '/' + target_xls_path;
+    std::vector<std::string> get_xls_paths() {
+        std::vector<std::string> paths;
+        if (target_xls_path.find('*') == std::string::npos) {
+            paths.push_back(utils::fs::joinpath(arg_config.xls_search_path, target_xls_path));
+            return paths;
+        }
+        auto dir = utils::fs::dirname(target_xls_path);
+        auto pattern = utils::fs::basename(target_xls_path);
+        if (dir.find('*') != std::string::npos) {
+            throw EXCEPTION(path, ": not supported target pattern=", target_xls_path);
+        }
+        auto fulldir = utils::fs::joinpath(arg_config.xls_search_path, dir);
+        for (auto& entry: utils::fs::iterdir(fulldir)) {
+            if (!entry.isfile) continue;
+            if (entry.name[0] == '~') continue;
+            if (utils::fs::matchname(entry.name, pattern)) {
+                paths.push_back(utils::fs::joinpath(arg_config.xls_search_path, dir, entry.name));
+            }
+        }
+        return paths;
     }
 
     inline

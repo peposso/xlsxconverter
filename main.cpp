@@ -170,26 +170,31 @@ struct Task
                 case YamlConfig::Handler::Type::kJson: {
                     auto handler = handlers::JsonHandler(yaml_config);
                     converter.run(handler);
+                    if (!canceled) handler.save();
                     break;
                 }
                 case YamlConfig::Handler::Type::kDjangoFixture: {
                     auto handler = handlers::DjangoFixtureHandler(yaml_config);
                     converter.run(handler);
+                    if (!canceled) handler.save();
                     break;
                 }
                 case YamlConfig::Handler::Type::kCSV: {
                     auto handler = handlers::CSVHandler(yaml_config);
                     converter.run(handler);
+                    if (!canceled) handler.save();
                     break;
                 }
                 case YamlConfig::Handler::Type::kLua: {
                     auto handler = handlers::LuaHandler(yaml_config);
                     converter.run(handler);
+                    if (!canceled) handler.save();
                     break;
                 }
                 case YamlConfig::Handler::Type::kTemplate: {
                     auto handler = handlers::TemplateHandler(yaml_config);
                     converter.run(handler);
+                    if (!canceled) handler.save();
                     break;
                 }
                 default: {

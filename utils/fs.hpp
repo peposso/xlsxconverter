@@ -67,8 +67,18 @@ std::string dirname(const std::string& name) {
     auto p1 = name.rfind('/');
     auto p2 = name.rfind('\\');
     if (p1 == std::string::npos && p1 == std::string::npos) return "";
-    if (p1 != std::string::npos) return name.substr(0, p1);
-    return name.substr(0, p2);
+    if (p1 == std::string::npos) return name.substr(0, p2);
+    if (p2 == std::string::npos) return name.substr(0, p1);
+    return name.substr(0, p1 > p2 ? p1 : p2);
+}
+inline
+std::string basename(const std::string& name) {
+    auto p1 = name.rfind('/');
+    auto p2 = name.rfind('\\');
+    if (p1 == std::string::npos && p1 == std::string::npos) return name;
+    if (p1 == std::string::npos) return name.substr(p2 + 1);
+    if (p2 == std::string::npos) return name.substr(p1 + 1);
+    return name.substr((p1 > p2 ? p1 : p2) + 1);
 }
 inline
 bool startswith(const std::string& haystack, const std::string& needle) {

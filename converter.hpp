@@ -65,13 +65,24 @@ struct Converter
 
     template<class T>
     void run(T& handler) {
-        auto book = xlsx::Workbook(config.get_xls_path());
-        auto& sheet = book.sheet_by_name(config.target_sheet_name);
-
-        auto column_mapping = map_column(sheet);
-
-        // process data
-        handle(handler, sheet, column_mapping);
+        auto paths = config.get_xls_paths();
+        if (paths.empty()) {
+            throw EXCEPTION(config.path, ": target file does not exist.");
+        }
+        handler.begin();
+        for (int i = 0; i < paths.size(); ++i) {
+            auto xls_path = paths[i];
+            auto book = xlsx::Workbook(xls_path);
+            auto& sheet = book.sheet_by_name(config.target_sheet_name);
+            auto column_mapping = map_column(sheet);
+            // process data
+            try {
+                handle(handler, sheet, column_mapping);
+            } catch (utils::exception& exc) {
+                throw EXCEPTION(config.path, ": ", xls_path, ": ", exc.what());
+            }
+        }
+        handler.end();
     }
 
     inline
@@ -96,8 +107,8 @@ struct Converter
                 for (int i = 0; i < sheet.ncols(); ++i) {;
                     utils::log("cell(", config.row-1, ",", i, ")=", sheet.cell(config.row-1, i).as_str());
                 }
-                throw EXCEPTION(config.path, ": row=", config.row,
-                                ": field{column=", field.column, ",name=", field.name, "}: NOT exists.");
+                throw EXCEPTION("row=", config.row, ": field{column=",
+                                field.column, ",name=", field.name, "}: NOT exists.");
             }
         }
         return column_mapping;
@@ -105,7 +116,6 @@ struct Converter
 
     template<class T>
     void handle(T& handler, xlsx::Sheet& sheet, std::vector<int>& column_mapping) {
-        handler.begin();
         if (config.handler.comment_row != boost::none) {
             int row = config.handler.comment_row.value() - 1;
             handler.begin_comment_row();
@@ -143,8 +153,6 @@ struct Converter
                 throw EXCEPTION(config.path, ": ", config.target, ": row=", j, ": ", exc.what());
             }
         }
-        handler.end();
-        handler.save();
     }
 
     template<class T>
@@ -152,7 +160,7 @@ struct Converter
         using FT = YamlConfig::Field::Type;
         using CT = xlsx::Cell::Type;
 
-        #define EXCEPT(...) EXCEPTION(config.path, ": target=", config.target, ": field=", field.column, ": cell(", cell.row, ",", cell.col, \
+        #define EXCEPT(...) EXCEPTION("field=", field.column, ": cell(", cell.row, ",", cell.col, \
                                       "){value=", cell.as_str(), ",type=", cell.type_name(), "}: ", __VA_ARGS__)
 
         if (field.type == FT::kInt)
