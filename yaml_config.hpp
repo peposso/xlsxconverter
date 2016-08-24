@@ -93,6 +93,7 @@ struct YamlConfig
         boost::any default_value;
         boost::optional<Validate> validate = boost::none;
         boost::optional<Relation> relation = boost::none;
+        boost::optional<std::unordered_map<std::string, std::string>> definition = boost::none;
         int index = -1;
 
         inline Field(YAML::Node node) {
@@ -123,6 +124,17 @@ struct YamlConfig
             if (auto n = node["relation"]) {
                 relation = Relation(n);
             }
+
+            if (auto n = node["definition"]) {
+                if (using_default) {
+                    throw EXCEPTION("using 'default' and 'definition' at same field.");
+                }
+                std::unordered_map<std::string, std::string> map;
+                for (auto kv: n) {
+                    map.emplace(kv.first.as<std::string>(), kv.second.as<std::string>());
+                }
+                definition = map;
+            }
         }
     };
 
@@ -145,9 +157,14 @@ struct YamlConfig
         if (!utils::fs::exists(fullpath)) {
             throw EXCEPTION("yaml=", fullpath, " does not exist.");
         }
-        auto doc = YAML::LoadFile(fullpath.c_str());
+        YAML::Node doc;
+        try {
+            doc = YAML::LoadFile(fullpath.c_str());
+        } catch (std::exception& exc) {
+            throw EXCEPTION(path, ": ", exc.what());
+        }
 
-        // base.
+        // root.
         if (doc["name"]) {
             name = doc["name"].as<std::string>();
         } else {
@@ -176,7 +193,7 @@ struct YamlConfig
         if (auto node = doc["handler"]) {;
             try {
                 handler = Handler(node);
-            } catch (utils::exception& exc) {
+            } catch (std::exception& exc) {
                 throw EXCEPTION(path, ": ", exc.what());
             }
         }
@@ -186,7 +203,7 @@ struct YamlConfig
         for (auto node: doc["fields"]) {
             try {
                 fields.push_back(Field(node));
-            } catch (utils::exception& exc) {
+            } catch (std::exception& exc) {
                 throw EXCEPTION(path, ": ", exc.what());
             }
         }

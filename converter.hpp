@@ -165,6 +165,15 @@ struct Converter
 
         if (field.type == FT::kInt)
         {
+            if (field.definition != boost::none) {
+                auto it = field.definition->find(cell.as_str());
+                if (it == field.definition->end()) {
+                    throw EXCEPT("not in definition.");
+                }
+                int64_t v = std::stoi(it->second);
+                handler.field(field, v);
+                return;
+            }
             if (cell.type == CT::kInt || cell.type == CT::kDouble) {
                 auto v = cell.as_int();
                 if (validator != boost::none && !validator.value()(v)) {
@@ -181,6 +190,15 @@ struct Converter
         }
         else if (field.type == FT::kFloat)
         {
+            if (field.definition != boost::none) {
+                auto it = field.definition->find(cell.as_str());
+                if (it == field.definition->end()) {
+                    throw EXCEPT("not in definition.");
+                }
+                double v = std::stod(it->second);
+                handler.field(field, v);
+                return;
+            }
             if (cell.type == CT::kInt || cell.type == CT::kDouble) {
                 handler.field(field, cell.as_double());
                 return;
@@ -193,6 +211,16 @@ struct Converter
         }
         else if (field.type == FT::kBool)
         {
+            if (field.definition != boost::none) {
+                auto it = field.definition->find(cell.as_str());
+                if (it == field.definition->end()) {
+                    throw EXCEPT("not in definition.");
+                }
+                auto s = it->second;
+                bool v = s != "false" && s != "no";
+                handler.field(field, v);
+                return;
+            }
             if (cell.type == CT::kEmpty && field.using_default) {
                 handle_cell_default(handler, cell, field);
                 return;
@@ -218,6 +246,14 @@ struct Converter
         }
         else if (field.type == FT::kChar)
         {
+            if (field.definition != boost::none) {
+                auto it = field.definition->find(cell.as_str());
+                if (it == field.definition->end()) {
+                    throw EXCEPT("not in definition.");
+                }
+                handler.field(field, it->second);
+                return;
+            }
             if (cell.type == CT::kEmpty && field.using_default) {
                 handle_cell_default(handler, cell, field);
                 return;
@@ -231,6 +267,10 @@ struct Converter
         }
         else if (field.type == FT::kDateTime)
         {
+            if (field.definition != boost::none) {
+                throw EXCEPT("not support datetime definition.");
+                return;
+            }
             auto tz = config.arg_config.tz_seconds;
             if (cell.type == CT::kDateTime) {
                 auto time = cell.as_time64(tz);
@@ -253,6 +293,10 @@ struct Converter
         }
         else if (field.type == FT::kUnixTime)
         {
+            if (field.definition != boost::none) {
+                throw EXCEPT("not support unixtime definition.");
+                return;
+            }
             auto tz = config.arg_config.tz_seconds;
             if (cell.type == CT::kDateTime) {
                 auto time = cell.as_time64(tz);
@@ -276,6 +320,10 @@ struct Converter
         else if (field.type == FT::kForeignKey)
         {
             if (ignore_relation) return;
+            if (field.definition != boost::none) {
+                throw EXCEPT("not support foreignkey definition.");
+                return;
+            }
             if (relation == boost::none) {
                 throw EXCEPT("requires relation map.");
             }

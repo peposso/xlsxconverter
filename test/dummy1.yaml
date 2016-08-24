@@ -18,6 +18,11 @@ fields:
   type: char
   default: "JP"
 
+- column: country_code_enum
+  name: "国籍"
+  type: int
+  definition: {'': 1, JP: 1, US: 2, FR: 3}
+
 - column: family_name
   name: "姓"
   type: char
