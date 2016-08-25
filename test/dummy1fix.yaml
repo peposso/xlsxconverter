@@ -45,3 +45,7 @@ fields:
     column: id
     from: 'country.yaml'
     key: name
+
+- column: _
+  name: "出力無効"
+  type: isignored

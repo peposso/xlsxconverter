@@ -39,6 +39,23 @@ struct Converter
         }
     };
 
+    static inline
+    bool truthy(const std::string& s) {
+        static std::unordered_set<std::string> set = {
+            "false", "False", "FALSE",
+            "no", "No", "NO",
+            "non", "Non", "NON",
+            "n", "N",
+            "off", "Off", "OFF",
+            "null", "Null", "NULL",
+            "nil", "Nill", "NILL",
+            "none", "None", "NONE",
+            "0", "0.0", "",
+        };
+        return set.find(s) == set.end();
+    }
+
+
     YamlConfig& config;
     bool ignore_relation = false;
     std::vector<boost::optional<Validator>> validators;
@@ -74,7 +91,7 @@ struct Converter
             auto xls_path = paths[i];
             auto book = xlsx::Workbook(xls_path);
             auto& sheet = book.sheet_by_name(config.target_sheet_name);
-            auto column_mapping = map_column(sheet);
+            auto column_mapping = map_column(sheet, xls_path);
             // process data
             try {
                 handle(handler, sheet, column_mapping);
@@ -86,7 +103,7 @@ struct Converter
     }
 
     inline
-    std::vector<int> map_column(xlsx::Sheet& sheet) {
+    std::vector<int> map_column(xlsx::Sheet& sheet, std::string& xls_path) {
         std::vector<int> column_mapping;
         for (int k = 0; k < config.fields.size(); ++k) {
             auto& field = config.fields[k];
@@ -107,8 +124,9 @@ struct Converter
                 for (int i = 0; i < sheet.ncols(); ++i) {;
                     utils::log("cell(", config.row-1, ",", i, ")=", sheet.cell(config.row-1, i).as_str());
                 }
-                throw EXCEPTION("row=", config.row, ": field{column=",
-                                field.column, ",name=", field.name, "}: NOT exists.");
+                throw EXCEPTION(config.path, ": ", xls_path, ": row=", config.row,
+                                ": field{column=",field.column,
+                                ",name=", field.name, "}: NOT exists.");
             }
         }
         return column_mapping;
@@ -129,18 +147,31 @@ struct Converter
         }
         for (int j = config.row; j < sheet.nrows(); ++j) {
             bool is_empty_line = true;
-            for (int i: column_mapping) {
+            bool is_ignored = false;
+            for (int k = 0; k < column_mapping.size(); ++k) {
+                using CT = xlsx::Cell::Type;
+                auto& field = config.fields[k];
+                auto i = column_mapping[k];
                 auto& cell = sheet.cell(j, i);
-                if (cell.type != xlsx::Cell::Type::kEmpty) {
+                if (cell.type != CT::kEmpty) {
                     is_empty_line = false;
-                    break;
+                }
+                if (field.type == YamlConfig::Field::Type::kIsIgnored) {
+                    if (cell.type == CT::kInt || cell.type == CT::kDouble) {
+                        is_ignored = cell.as_int() != 0;
+                    }
+                    if (cell.type == CT::kString) {
+                        is_ignored = truthy(cell.as_str());
+                    }
+                    if (is_ignored) break;
                 }
             }
-            if (is_empty_line) { continue; }
+            if (is_empty_line || is_ignored) { continue; }
 
             handler.begin_row();
             for (int k = 0; k < column_mapping.size(); ++k) {
                 auto& field = config.fields[k];
+                if (field.type == YamlConfig::Field::Type::kIsIgnored) continue;
                 auto i = column_mapping[k];
                 auto& cell = sheet.cell(j, i);
                 auto& validator = validators[k];
@@ -234,12 +265,8 @@ struct Converter
                 return;
             }
             if (cell.type == CT::kString) {
-                auto s = cell.as_str();
-                if (s == "False" || s == "false" || s == "FALSE" || s == "No" || s == "no" || s == "NO" || s == "0" || s == "0.0") {
-                    handler.field(field, false);
-                } else {
-                    handler.field(field, true);
-                }
+                auto v = truthy(cell.as_str());
+                handler.field(field, v);
                 return;
             }
             throw EXCEPT("type error. expect bool.");

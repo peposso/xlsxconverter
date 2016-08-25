@@ -64,7 +64,8 @@ struct YamlConfig
     };
     struct Field {
         enum Type {
-            kError, kInt, kFloat, kBool, kChar, kDateTime, kUnixTime, kForeignKey,
+            kError, kInt, kFloat, kBool, kChar, kDateTime, kUnixTime,
+            kForeignKey, kIsIgnored,
         };
         struct Validate {
             bool unique = false;
@@ -108,6 +109,7 @@ struct YamlConfig
             else if (type_name == "datetime") type = Type::kDateTime;
             else if (type_name == "unixtime") type = Type::kUnixTime;
             else if (type_name == "foreignkey") type = Type::kForeignKey;
+            else if (type_name == "isignored") type = Type::kIsIgnored;
             else throw EXCEPTION("unknown field.type: ", type_name);
 
             if (auto o = node["type_alias"]) type_alias = o.as<std::string>();

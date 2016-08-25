@@ -52,6 +52,7 @@ struct CSVHandler
         if (config.handler.csv_field_type) {
             begin_row();
             for (auto& f: config.fields) {
+                if (f.type == YamlConfig::Field::Type::kIsIgnored) continue;
                 std::string type_name;
                 if (f.type_alias.empty()) {
                     if (f.type == YamlConfig::Field::Type::kForeignKey) {
@@ -69,6 +70,7 @@ struct CSVHandler
         if (config.handler.csv_field_column) {
             begin_row();
             for (auto& f: config.fields) {
+                if (f.type == YamlConfig::Field::Type::kIsIgnored) continue;
                 field(f, f.column);
             }
         }

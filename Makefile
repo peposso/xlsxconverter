@@ -101,7 +101,7 @@ test-util:
 test: $(TARGET)
 	$(LDD) $(TARGET)
 	$(DEBUGGER) $(TEST)
-	python test/check_json.py test/dummy1.json
+	python test/check_json.py test/sample.json
 	python test/check_json.py test/dummy1fix.json
 	[ -e ../test.sh ] && ../test.sh || true
 .PHONY: test
