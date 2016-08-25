@@ -1,4 +1,4 @@
-連番,国籍,姓,名,生年月日,出身地,現住都道府県,出力無効
+連番,国籍,姓,名,生年月日,出身地,現住都道府県
 int,string,string,string,string,int,int
 id,country_code,family_name,first_name,birthday,preference_id,current_preference_id
 1,JP,あああ,ししし,1969-09-05T00:00:00+0900,37,1

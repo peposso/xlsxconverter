@@ -91,6 +91,7 @@ struct YamlConfig
         std::string column;
         std::string name;
         bool using_default = false;
+        bool optional = false;
         boost::any default_value;
         boost::optional<Validate> validate = boost::none;
         boost::optional<Relation> relation = boost::none;
@@ -113,6 +114,7 @@ struct YamlConfig
             else throw EXCEPTION("unknown field.type: ", type_name);
 
             if (auto o = node["type_alias"]) type_alias = o.as<std::string>();
+            if (auto o = node["optional"]) optional = o.as<bool>();
 
             if (auto n = node["default"]) {
                 using_default = true;

@@ -121,6 +121,10 @@ struct Converter
                 }
             }
             if (!found) {
+                if (field.optional) {
+                    column_mapping.push_back(-1);
+                    continue;
+                }
                 for (int i = 0; i < sheet.ncols(); ++i) {;
                     utils::log("cell(", config.row-1, ",", i, ")=", sheet.cell(config.row-1, i).as_str());
                 }
@@ -139,9 +143,14 @@ struct Converter
             handler.begin_comment_row();
             for (int k = 0; k < column_mapping.size(); ++k) {
                 auto& field = config.fields[k];
+                if (field.type == YamlConfig::Field::Type::kIsIgnored) continue;
                 auto i = column_mapping[k];
-                auto& cell = sheet.cell(row, i);
-                handler.field(field, cell.as_str());
+                if (i == -1) {
+                    handler.field(field, std::string());
+                } else {
+                    auto& cell = sheet.cell(row, i);
+                    handler.field(field, cell.as_str());
+                }
             }
             handler.end_comment_row();
         }
@@ -153,6 +162,7 @@ struct Converter
                 auto& field = config.fields[k];
                 auto i = column_mapping[k];
                 auto& cell = sheet.cell(j, i);
+                if (i == -1) continue;
                 if (cell.type != CT::kEmpty) {
                     is_empty_line = false;
                 }
@@ -173,10 +183,17 @@ struct Converter
                 auto& field = config.fields[k];
                 if (field.type == YamlConfig::Field::Type::kIsIgnored) continue;
                 auto i = column_mapping[k];
-                auto& cell = sheet.cell(j, i);
-                auto& validator = validators[k];
-                auto& relation = relations[k];
-                handle_cell(handler, cell, field, validator, relation);
+                if (i == -1) {;
+                    if (!field.using_default) {
+                        throw EXCEPTION("optional field requires default.");
+                    }
+                    handle_cell_default(handler, field);
+                } else {
+                    auto& cell = sheet.cell(j, i);
+                    auto& validator = validators[k];
+                    auto& relation = relations[k];
+                    handle_cell(handler, cell, field, validator, relation);
+                }
             }
             try {
                 handler.end_row();
@@ -214,7 +231,7 @@ struct Converter
                 return;
             }
             if (cell.type == CT::kEmpty && field.using_default) {
-                handle_cell_default(handler, cell, field);
+                handle_cell_default(handler, field);
                 return;
             }
             throw EXCEPT("type error. expect int.");
@@ -235,7 +252,7 @@ struct Converter
                 return;
             }
             if (cell.type == CT::kEmpty && field.using_default) {
-                handle_cell_default(handler, cell, field);
+                handle_cell_default(handler, field);
                 return;
             }
             throw EXCEPT("type error. expect float.");
@@ -253,7 +270,7 @@ struct Converter
                 return;
             }
             if (cell.type == CT::kEmpty && field.using_default) {
-                handle_cell_default(handler, cell, field);
+                handle_cell_default(handler, field);
                 return;
             }
             if (cell.type == CT::kEmpty) {
@@ -282,7 +299,7 @@ struct Converter
                 return;
             }
             if (cell.type == CT::kEmpty && field.using_default) {
-                handle_cell_default(handler, cell, field);
+                handle_cell_default(handler, field);
                 return;
             }
             auto v = cell.as_str();
@@ -305,7 +322,7 @@ struct Converter
                 return;
             }
             if (cell.type == CT::kEmpty && field.using_default) {
-                handle_cell_default(handler, cell, field);
+                handle_cell_default(handler, field);
                 return;
             }
             if (cell.type == CT::kString) {
@@ -331,7 +348,7 @@ struct Converter
                 return;
             }
             if (cell.type == CT::kEmpty && field.using_default) {
-                handle_cell_default(handler, cell, field);
+                handle_cell_default(handler, field);
                 return;
             }
             if (cell.type == CT::kString) {
@@ -355,7 +372,7 @@ struct Converter
                 throw EXCEPT("requires relation map.");
             }
             if (cell.type == CT::kEmpty && field.using_default) {
-                handle_cell_default(handler, cell, field);
+                handle_cell_default(handler, field);
                 return;
             }
             auto& relmap = relation.value();
@@ -401,7 +418,7 @@ struct Converter
     }
 
     template<class T>
-    void handle_cell_default(T& handler, xlsx::Cell& cell, YamlConfig::Field& field) {
+    void handle_cell_default(T& handler, YamlConfig::Field& field) {
         auto& v = field.default_value;
         if (v.type() == typeid(int64_t)) {
             handler.field(field, boost::any_cast<int64_t>(v));
