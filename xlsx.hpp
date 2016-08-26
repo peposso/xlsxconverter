@@ -251,6 +251,23 @@ struct Cell
     }
 
     inline
+    std::string cellname() {
+        std::string name;
+        int ncol = col + 1;
+        while (ncol > 0) {
+            if (ncol % 26 == 0) {
+                name = "Z" + name;
+                ncol = ncol / 26;
+                ncol--;
+            } else {
+                name = std::string(1, 'A' + ncol % 26 - 1) + name;
+                ncol = ncol / 26;
+            }
+        }
+        return name + std::to_string(row + 1);
+    }
+
+    inline
     int64_t as_int() {
         try {
             return std::stoi(v);
@@ -366,13 +383,20 @@ struct Sheet
             for (auto& c: pair.second.children("c")) {
                 std::string r = c.attribute("r").as_string();
                 int colx, rowx_;
-                std::tie(rowx_, colx) = parse_cell_position(r);
+                std::tie(rowx_, colx) = parse_cellname(r);
                 if (colx > colmax) colmax = colx;
             }
             if (colmax > max) max = colmax;
         }
         ncols_ = max + 1;
         return ncols_;
+    }
+
+    inline
+    Cell& cell(const std::string& cellname) {
+        int rowx, colx;
+        std::tie(rowx, colx) = parse_cellname(cellname);
+        return cell(rowx, colx);
     }
 
     inline
@@ -392,7 +416,7 @@ struct Sheet
             // TODO: fix colx by attribute("r")
             std::string r = c.attribute("r").as_string();
             int colx, rowx_;
-            std::tie(rowx_, colx) = parse_cell_position(r);
+            std::tie(rowx_, colx) = parse_cellname(r);
             if (rowx_ != rowx) {
                 throw Exception("bad. r=", r, " row=", rowx, " parsed_row=", rowx_);
             }
@@ -419,7 +443,7 @@ struct Sheet
     }
 
     inline
-    std::tuple<int, int> parse_cell_position(std::string r) {
+    std::tuple<int, int> parse_cellname(std::string r) {
         size_t p = std::string::npos;
         int colx = 0;
         for (size_t i = 0; i < r.size(); ++i) {

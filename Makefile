@@ -98,6 +98,11 @@ test-util:
 	$(DEBUGGER) ./test-util.exe
 	-rm test-util.exe
 
+test-xlsx:
+	$(CXX) $(CPPFLAGS) -O0 -g3 test/test_xlsx.cpp $(LDFLAGS) -o test_xlsx.exe
+	$(DEBUGGER) ./test_xlsx.exe
+	-rm test_xlsx.exe
+
 test: $(TARGET)
 	$(LDD) $(TARGET)
 	$(DEBUGGER) $(TEST)

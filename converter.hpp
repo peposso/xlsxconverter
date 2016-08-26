@@ -125,8 +125,9 @@ struct Converter
                     column_mapping.push_back(-1);
                     continue;
                 }
-                for (int i = 0; i < sheet.ncols(); ++i) {;
-                    utils::log("cell(", config.row-1, ",", i, ")=", sheet.cell(config.row-1, i).as_str());
+                for (int i = 0; i < sheet.ncols(); ++i) {
+                    auto& cell = sheet.cell(config.row-1, i);
+                    utils::log("cell[", cell.cellname(), "]=", cell.as_str());
                 }
                 throw EXCEPTION(config.path, ": ", xls_path, ": row=", config.row,
                                 ": field{column=",field.column,
@@ -192,13 +193,18 @@ struct Converter
                     auto& cell = sheet.cell(j, i);
                     auto& validator = validators[k];
                     auto& relation = relations[k];
-                    handle_cell(handler, cell, field, validator, relation);
+                    try {
+                        handle_cell(handler, cell, field, validator, relation);
+                    } catch (std::exception& exc) {
+                        throw EXCEPTION("field=", field.column, ": cell[", cell.cellname(), "]=", \
+                                      "{value=", cell.as_str(), ",type=", cell.type_name(), "}: ", exc.what());
+                    }
                 }
             }
             try {
                 handler.end_row();
-            } catch (utils::exception& exc) {
-                throw EXCEPTION(config.path, ": ", config.target, ": row=", j, ": ", exc.what());
+            } catch (std::exception& exc) {
+                throw EXCEPTION("row=", j, ": ", exc.what());
             }
         }
     }
@@ -208,15 +214,12 @@ struct Converter
         using FT = YamlConfig::Field::Type;
         using CT = xlsx::Cell::Type;
 
-        #define EXCEPT(...) EXCEPTION("field=", field.column, ": cell(", cell.row, ",", cell.col, \
-                                      "){value=", cell.as_str(), ",type=", cell.type_name(), "}: ", __VA_ARGS__)
-
         if (field.type == FT::kInt)
         {
             if (field.definition != boost::none) {
                 auto it = field.definition->find(cell.as_str());
                 if (it == field.definition->end()) {
-                    throw EXCEPT("not in definition.");
+                    throw EXCEPTION("not in definition.");
                 }
                 int64_t v = std::stoi(it->second);
                 handler.field(field, v);
@@ -225,7 +228,7 @@ struct Converter
             if (cell.type == CT::kInt || cell.type == CT::kDouble) {
                 auto v = cell.as_int();
                 if (validator != boost::none && !validator.value()(v)) {
-                    throw EXCEPT("validation error.");
+                    throw EXCEPTION("validation error.");
                 }
                 handler.field(field, v);
                 return;
@@ -234,14 +237,14 @@ struct Converter
                 handle_cell_default(handler, field);
                 return;
             }
-            throw EXCEPT("type error. expect int.");
+            throw EXCEPTION("type error. expect int.");
         }
         else if (field.type == FT::kFloat)
         {
             if (field.definition != boost::none) {
                 auto it = field.definition->find(cell.as_str());
                 if (it == field.definition->end()) {
-                    throw EXCEPT("not in definition.");
+                    throw EXCEPTION("not in definition.");
                 }
                 double v = std::stod(it->second);
                 handler.field(field, v);
@@ -255,14 +258,14 @@ struct Converter
                 handle_cell_default(handler, field);
                 return;
             }
-            throw EXCEPT("type error. expect float.");
+            throw EXCEPTION("type error. expect float.");
         }
         else if (field.type == FT::kBool)
         {
             if (field.definition != boost::none) {
                 auto it = field.definition->find(cell.as_str());
                 if (it == field.definition->end()) {
-                    throw EXCEPT("not in definition.");
+                    throw EXCEPTION("not in definition.");
                 }
                 auto s = it->second;
                 bool v = s != "false" && s != "no";
@@ -286,14 +289,14 @@ struct Converter
                 handler.field(field, v);
                 return;
             }
-            throw EXCEPT("type error. expect bool.");
+            throw EXCEPTION("type error. expect bool.");
         }
         else if (field.type == FT::kChar)
         {
             if (field.definition != boost::none) {
                 auto it = field.definition->find(cell.as_str());
                 if (it == field.definition->end()) {
-                    throw EXCEPT("not in definition.");
+                    throw EXCEPTION("not in definition.");
                 }
                 handler.field(field, it->second);
                 return;
@@ -304,7 +307,7 @@ struct Converter
             }
             auto v = cell.as_str();
             if (validator != boost::none && !validator.value()(v)) {
-                throw EXCEPT("validation error.");
+                throw EXCEPTION("validation error.");
             }
             handler.field(field, v);
             return;
@@ -312,7 +315,7 @@ struct Converter
         else if (field.type == FT::kDateTime)
         {
             if (field.definition != boost::none) {
-                throw EXCEPT("not support datetime definition.");
+                throw EXCEPTION("not support datetime definition.");
                 return;
             }
             auto tz = config.arg_config.tz_seconds;
@@ -328,17 +331,17 @@ struct Converter
             if (cell.type == CT::kString) {
                 auto time = utils::dateutil::parse64(cell.as_str(), tz);
                 if (time == utils::dateutil::ntime) {
-                    throw EXCEPT("parsing datetime error.");
+                    throw EXCEPTION("parsing datetime error.");
                 }
                 handler.field(field, utils::dateutil::isoformat64(time, tz));
                 return;
             }
-            throw EXCEPT("type error. expect datetime.");
+            throw EXCEPTION("type error. expect datetime.");
         }
         else if (field.type == FT::kUnixTime)
         {
             if (field.definition != boost::none) {
-                throw EXCEPT("not support unixtime definition.");
+                throw EXCEPTION("not support unixtime definition.");
                 return;
             }
             auto tz = config.arg_config.tz_seconds;
@@ -354,22 +357,22 @@ struct Converter
             if (cell.type == CT::kString) {
                 auto time = utils::dateutil::parse64(cell.as_str(), tz);
                 if (time == utils::dateutil::ntime) {
-                    throw EXCEPT("parsing datetime error.");
+                    throw EXCEPTION("parsing datetime error.");
                 }
                 handler.field(field, time);
                 return;
             }
-            throw EXCEPT("type error. expect datetime.");
+            throw EXCEPTION("type error. expect datetime.");
         }
         else if (field.type == FT::kForeignKey)
         {
             if (ignore_relation) return;
             if (field.definition != boost::none) {
-                throw EXCEPT("not support foreignkey definition.");
+                throw EXCEPTION("not support foreignkey definition.");
                 return;
             }
             if (relation == boost::none) {
-                throw EXCEPT("requires relation map.");
+                throw EXCEPTION("requires relation map.");
             }
             if (cell.type == CT::kEmpty && field.using_default) {
                 handle_cell_default(handler, field);
@@ -377,7 +380,7 @@ struct Converter
             }
             auto& relmap = relation.value();
             if (relmap.id != field.relation->id) {
-                throw EXCEPT("relation maps was broken. id=", relmap.id);
+                throw EXCEPTION("relation maps was broken. id=", relmap.id);
             }
 
             if (relmap.key_type == FT::kChar) {;
@@ -385,36 +388,35 @@ struct Converter
                     try {
                         auto v = relmap.get<int64_t, std::string>(cell.as_str());
                         handler.field(field, v);
-                    } catch (utils::exception& exc) {
-                        throw EXCEPT(exc.what());
+                    } catch (std::exception& exc) {
+                        throw EXCEPTION(exc.what());
                     }
                     return;
                 } else {
-                    throw EXCEPT("usable relation type maps are (char -> int), (int -> int).");
+                    throw EXCEPTION("usable relation type maps are (char -> int), (int -> int).");
                 }
             } else if (relmap.key_type == FT::kInt) {
                 if (cell.type != CT::kInt && cell.type != CT::kDouble) {
-                    throw EXCEPT("not matched relation key_type.");
+                    throw EXCEPTION("not matched relation key_type.");
                 }
                 if (relmap.column_type == FT::kInt) {
                     try {
                         auto v = relmap.get<int64_t, int64_t>(cell.as_int());
                         handler.field(field, v);
                     } catch (utils::exception& exc) {
-                        throw EXCEPT(exc.what());
+                        throw EXCEPTION(exc.what());
                     }
                     return;
                 } else {
-                    throw EXCEPT("usable relation type maps are (char -> int), (int -> int).");
+                    throw EXCEPTION("usable relation type maps are (char -> int), (int -> int).");
                 }
             } else {
-                throw EXCEPT("usable relation type maps are (char -> int), (int -> int). (",
+                throw EXCEPTION("usable relation type maps are (char -> int), (int -> int). (",
                              relmap.key_type_name, " -> ", relmap.column_type_name, ")");
             }
         }
 
-        throw EXCEPT("unknown field error.");
-        #undef EXCEPT
+        throw EXCEPTION("unknown field error.");
     }
 
     template<class T>
