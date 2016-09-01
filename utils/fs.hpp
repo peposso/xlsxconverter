@@ -18,8 +18,24 @@ namespace xlsxconverter {
 namespace utils {
 namespace fs {
 
-inline
-char sep() {
+#ifdef _WIN32
+inline std::string wtou8(WCHAR* ws) {
+    size_t size = ::WideCharToMultiByte(CP_UTF8, 0, ws, -1, (char*)nullptr, 0, nullptr, nullptr);
+    std::string buf(size+1, '\0');
+    ::WideCharToMultiByte(CP_UTF8, 0, ws, -1, &buf[0], size+1, nullptr, nullptr);
+    return buf;
+}
+inline std::vector<WCHAR> u8tow(const std::string& str) {
+    size_t size = ::MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, (WCHAR*)nullptr, 0);
+    std::vector<WCHAR> buf;
+    buf.resize(size + 1);
+    ::MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, &buf[0], size + 1);
+    buf[size] = '\0';
+    return buf;
+}
+#endif
+
+inline char sep() {
     #ifdef _WIN32
     return '\\';
     #else
@@ -92,71 +108,74 @@ bool endswith(const std::string& haystack, const std::string& needle) {
     if (haystack.size() == needle.size()) return haystack == needle;
     return haystack.substr(haystack.size() - needle.size()) == needle;
 }
+
 inline
-bool matchname(const std::string& haystack, const std::string& needle) {
-    // support only "aaa" "*aaa" "aaa*" "*aaa*" "*" "aaa*bbb"
-    if (needle.empty()) return true;
-    if (needle == "*") return true;
-    auto len = needle.size();
-    if (needle[0] == '*' && needle[len-1] == '*') {  // "*aaa*"
-        auto pat = needle.substr(1, len-1);
-        if (pat.find('*') != std::string::npos) throw std::runtime_error("not supported pattern");
-        return haystack.find(pat) != std::string::npos;
+std::vector<std::string> split(const std::string& str, char delim) {
+    std::istringstream ss(str);
+    std::string item;
+    std::vector<std::string> result;
+    while (std::getline(ss, item, delim)) {
+        result.push_back(item);
     }
-    if (needle[0] == '*') {  // "*aaa"
-        auto pat = needle.substr(1, len);
-        if (pat.find('*') != std::string::npos) throw std::runtime_error("not supported pattern");
-        return endswith(haystack, pat);
-    }
-    if (needle[len-1] == '*') {  // "aaa*"
-        auto pat = needle.substr(0, len-1);
-        if (pat.find('*') != std::string::npos) throw std::runtime_error("not supported pattern");
-        return startswith(haystack, pat);
-    }
-    auto p = needle.find('*');
-    if (p == std::string::npos) {  // "aaa"
-        return haystack == needle;
-    }
-    // "aaa*bbb"
-    auto pat1 = needle.substr(0, p);
-    auto pat2 = needle.substr(p+1, len);
-    if (pat1.find('*') != std::string::npos) throw std::runtime_error("not supported pattern");
-    if (pat2.find('*') != std::string::npos) throw std::runtime_error("not supported pattern");
-    if (haystack.size() < pat1.size() + pat2.size()) {
-        return false;
-    }
-    return startswith(haystack, pat1) && endswith(haystack, pat2);
+    if (result.empty()) result.resize(1);
+    return result;
 }
 
 inline
-void mkdirp(const std::string& name) {
-    if (name.empty()) return;
-    std::vector<std::string> names;
-    std::string buf;
-    for (auto c: name) {
-        if (c == '/' || c == '\\') {
-            names.push_back(buf);
-            buf.clear();
-        } else {
-            buf.push_back(c);
-        }
+bool match(const std::string& haystack, const std::string& needle) {
+    // simulate windows match pattern. ("*.*" match all.)
+    if (needle.empty()) return true;
+    if (needle == "*" || needle == "*.*") return true;
+    
+    auto pats = split(needle, '*');
+    if (pats.size() == 1) {
+        // no *
+        return haystack == pats[0];
     }
-    names.push_back(buf);
-    std::string path;
-    if (isabspath(name)) {
-        path = names[0];
-        names.erase(names.begin());
+    size_t b = 0;
+    size_t e = haystack.size();
+    // startswith
+    auto pat = pats[0];
+    if (!pat.empty()) {  // "aaa*..."
+        auto r = startswith(haystack, pat);
+        if (!r) return false;
+        b += pat.size();
     }
-    for (auto n: names) {
-        path = path.empty() ? n : path + sep() + n;
-        if (!exists(path)) {
-            #ifdef _WIN32
-            ::mkdir(path.c_str());
-            #else
-            ::mkdir(path.c_str(), 0755);
-            #endif
-        } 
+    pats.erase(pats.begin());
+
+    // endswith
+    pat = pats[pats.size()-1];
+    if (!pat.empty()) {  // "...*aaa"
+        auto r = endswith(haystack, pat);
+        if (!r) return false;
+        e -= pat.size();
     }
+    pats.pop_back();
+
+    //
+    for (auto pat: pats) {
+        auto pos = haystack.find(pat, b);
+        if (pos == std::string::npos) return false;
+        b = pos + pat.size();
+        if (b > e) return false;
+    }
+    return true;
+}
+
+inline
+bool mkdirp(const std::string& name) {
+    if (name.empty()) return true;
+    if (exists(name)) return true;
+    if (!mkdirp(dirname(name))) {
+        return false;
+    }
+    #ifdef _WIN32
+    auto w = u8tow(name);
+    ::CreateDirectoryW(w.data(), nullptr);
+    #else
+    ::mkdir(name.c_str(), 0755);
+    #endif
+    return true;
 }
 inline
 std::string readfile(const std::string& name) {
@@ -263,7 +282,7 @@ struct iterdir
             current.isfile = entptr->d_type == DT_REG;
             current.isdir = entptr->d_type == DT_DIR;
             current.islink = entptr->d_type == DT_LNK;
-            if (!filter.empty() && !matchname(current.name, filter)) {
+            if (!filter.empty() && !match(current.name, filter)) {
                 return operator++();
             }
             return *this;
@@ -293,7 +312,7 @@ std::vector<std::string> walk(const std::string& dirname, const std::string& fil
             for (auto& child: walk(dir, filter)) {
                 files.push_back(joinpath(entry.name, child));
             }
-        } else if (entry.isfile && matchname(entry.name, filter)) {
+        } else if (entry.isfile && match(entry.name, filter)) {
             files.push_back(entry.name);
         }
     }

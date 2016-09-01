@@ -89,11 +89,11 @@ struct Converter
         handler.begin();
         for (int i = 0; i < paths.size(); ++i) {
             auto xls_path = paths[i];
-            auto book = xlsx::Workbook(xls_path);
-            auto& sheet = book.sheet_by_name(config.target_sheet_name);
-            auto column_mapping = map_column(sheet, xls_path);
-            // process data
             try {
+                auto book = xlsx::Workbook(xls_path);
+                auto& sheet = book.sheet_by_name(config.target_sheet_name);
+                auto column_mapping = map_column(sheet, xls_path);
+                // process data
                 handle(handler, sheet, column_mapping);
             } catch (utils::exception& exc) {
                 throw EXCEPTION(config.path, ": ", xls_path, ": ", exc.what());

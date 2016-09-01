@@ -72,11 +72,6 @@ std::vector<std::string> split(const std::string& str, char delim, A...a) {
 }
 
 template<class T>
-bool contains(const std::vector<T> vec, const T& value) {
-    return std::find(vec.begin(), vec.end(), value) != vec.end();
-}
-
-template<class T>
 void sscat_detail_(std::stringstream& ss, const T& t) {
     ss << t;
 }

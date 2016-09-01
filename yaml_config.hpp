@@ -251,7 +251,7 @@ struct YamlConfig
         for (auto& entry: utils::fs::iterdir(fulldir)) {
             if (!entry.isfile) continue;
             if (entry.name[0] == '~') continue;
-            if (utils::fs::matchname(entry.name, pattern)) {
+            if (utils::fs::match(entry.name, pattern)) {
                 paths.push_back(utils::fs::joinpath(arg_config.xls_search_path, dir, entry.name));
             }
         }

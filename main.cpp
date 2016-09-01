@@ -88,20 +88,25 @@ struct Task
 
     void phase1() {
         while (!canceled) {
-            auto target = targets.move_front();
-            if (target == boost::none) break;
+            auto target_opt = targets.move_front();
+            if (target_opt == boost::none) break;
+            auto target = target_opt.value();
 
-            auto yaml_config = YamlConfig(target.value(), arg_config);
-            for (auto rel: yaml_config.relations()) {
-                std::string fullpath = utils::fs::joinpath(arg_config.yaml_search_path, rel.from);
-                if (!utils::fs::exists(fullpath)) {
-                    throw EXCEPTION(target.value(), ": relational_yaml=", fullpath, " does not exist.");
+            try {
+                auto yaml_config = YamlConfig(target, arg_config);
+                for (auto rel: yaml_config.relations()) {
+                    std::string fullpath = utils::fs::joinpath(arg_config.yaml_search_path, rel.from);
+                    if (!utils::fs::exists(fullpath)) {
+                        throw EXCEPTION(target, ": relational_yaml=", fullpath, " does not exist.");
+                    }
+                    if (!relations.any(id_functor(rel.id))) {
+                        relations.push_back(std::move(rel));
+                    }
                 }
-                if (!relations.any(id_functor(rel.id))) {
-                    relations.push_back(std::move(rel));
-                }
+                yaml_configs.push_back(std::move(yaml_config));
+            } catch (std::exception& exc) {
+                throw EXCEPTION(target, ": ", exc.what());
             }
-            yaml_configs.push_back(std::move(yaml_config));
         }
         --phase1_running;
         if (phase1_running.load() == 0) {
@@ -117,16 +122,17 @@ struct Task
             auto relation = relations.move_front();
             if (relation == boost::none) break;
 
-            // if (!arg_config.quiet) {
-            //     utils::log("rel_yaml: ", relation->from);
-            // }
-            auto yaml_config = YamlConfig(relation->from, arg_config);
-            for (auto rel: yaml_config.relations()) {
-                if (!relations.any(id_functor(rel.id)) && !relation_yamls.any(id_functor(rel.id))) {
-                    relations.push_back(std::move(rel));
+            try {
+                auto yaml_config = YamlConfig(relation->from, arg_config);
+                for (auto rel: yaml_config.relations()) {
+                    if (!relations.any(id_functor(rel.id)) && !relation_yamls.any(id_functor(rel.id))) {
+                        relations.push_back(std::move(rel));
+                    }
                 }
+                relation_yamls.push_back(RelationYaml(relation->id, std::move(yaml_config), std::move(relation.value())));
+            } catch (std::exception& exc) {
+                throw EXCEPTION(relation->from, ": ", exc.what());
             }
-            relation_yamls.push_back(RelationYaml(relation->id, std::move(yaml_config), std::move(relation.value())));
         }
         --phase2_running;
         if (phase2_running.load() == 0) {
