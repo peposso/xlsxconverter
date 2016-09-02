@@ -12,11 +12,14 @@ fields:
   type: int
   validate:
     unique: true
+    sequential: true
 
 - column: country_code
   name: "国籍"
   type: char
   default: "JP"
+  validate:
+    anyof: [JP, FR, US]
 
 - column: country_code_enum
   name: "国籍"

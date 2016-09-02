@@ -2,11 +2,13 @@
 #include <iostream>
 
 #include "xlsx.hpp"
+#include "utils.hpp"
+
 #include "yaml_config.hpp"
 #include "arg_config.hpp"
 
 #include "handlers.hpp"
-#include "utils.hpp"
+#include "validator.hpp"
 
 #define EXCEPTION XLSXCONVERTER_UTILS_EXCEPTION
 
@@ -14,31 +16,6 @@ namespace xlsxconverter {
 
 struct Converter
 {
-    struct Validator {
-        YamlConfig::Field& field;
-        std::unordered_set<std::string> strset;
-        std::unordered_set<int64_t> intset;
-
-        inline Validator(YamlConfig::Field& field) : field(field) {}
-
-        inline bool operator()(std::string& val) {
-            if (!field.validate) return true;
-            if (field.validate->unique) {
-                if (strset.count(val) != 0) return false;
-                strset.insert(val);
-            }
-            return true;
-        }
-        inline bool operator()(int64_t& val) {
-            if (!field.validate) return true;
-            if (field.validate->unique) {
-                if (intset.count(val) != 0) return false;
-                intset.insert(val);
-            }
-            return true;
-        }
-    };
-
     static inline
     bool truthy(const std::string& s) {
         static std::unordered_set<std::string> set = {
@@ -222,14 +199,13 @@ struct Converter
                     throw EXCEPTION("not in definition.");
                 }
                 int64_t v = std::stoi(it->second);
+                if (validator != boost::none) validator.value()(v);
                 handler.field(field, v);
                 return;
             }
             if (cell.type == CT::kInt || cell.type == CT::kDouble) {
                 auto v = cell.as_int();
-                if (validator != boost::none && !validator.value()(v)) {
-                    throw EXCEPTION("validation error.");
-                }
+                if (validator != boost::none) validator.value()(v);
                 handler.field(field, v);
                 return;
             }
@@ -306,9 +282,7 @@ struct Converter
                 return;
             }
             auto v = cell.as_str();
-            if (validator != boost::none && !validator.value()(v)) {
-                throw EXCEPTION("validation error.");
-            }
+            if (validator != boost::none) validator.value()(v);
             handler.field(field, v);
             return;
         }
@@ -387,6 +361,7 @@ struct Converter
                 if (relmap.column_type == FT::kInt) {
                     try {
                         auto v = relmap.get<int64_t, std::string>(cell.as_str());
+                        if (validator != boost::none) validator.value()(v);
                         handler.field(field, v);
                     } catch (std::exception& exc) {
                         throw EXCEPTION(exc.what());
@@ -402,6 +377,7 @@ struct Converter
                 if (relmap.column_type == FT::kInt) {
                     try {
                         auto v = relmap.get<int64_t, int64_t>(cell.as_int());
+                        if (validator != boost::none) validator.value()(v);
                         handler.field(field, v);
                     } catch (utils::exception& exc) {
                         throw EXCEPTION(exc.what());
@@ -434,7 +410,6 @@ struct Converter
             handler.field(field, boost::any_cast<std::nullptr_t>(v));
         }
     }
-    
 };
 
 }

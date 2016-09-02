@@ -319,6 +319,21 @@ struct mutex_map
     }
 };
 
+inline bool isdigits(const std::string& s) {
+    for (auto c: s) {
+        if (c < '0' || '9' < c) return false;
+    }
+    return true;
+}
+
+inline bool isdecimal(const std::string& s) {
+    if (s.empty()) return false;
+    if (s[0] == '+' || s[0] == '-') {
+        return isdigits(s.substr(1));
+    }
+    return isdigits(s);
+}
+
 
 }
 }

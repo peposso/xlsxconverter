@@ -69,8 +69,30 @@ struct YamlConfig
         };
         struct Validate {
             bool unique = false;
+            bool sorted = false;
+            bool sequential = false;
+            boost::optional<int64_t> max = boost::none;
+            boost::optional<int64_t> min = boost::none;
+            bool anyof = false;
+            std::unordered_set<int64_t> anyof_intset;
+            std::unordered_set<std::string> anyof_strset;
+
             inline Validate(YAML::Node node) {
                 if (auto n = node["unique"]) unique = n.as<bool>();
+                if (auto n = node["sorted"]) sorted = n.as<bool>();
+                if (auto n = node["sequential"]) sequential = n.as<bool>();
+                if (auto n = node["max"]) max = n.as<int64_t>();
+                if (auto n = node["min"]) min = n.as<int64_t>();
+                if (auto n = node["anyof"]) {
+                    anyof = true;
+                    for (auto item: n) {
+                        auto s = item.as<std::string>();
+                        anyof_strset.insert(s);
+                        utils::log("anyof_strset.insert()", s);
+                        if (utils::isdecimal(s))
+                            anyof_intset.insert(std::stoi(s));
+                    }
+                }
             }
         };
         struct Relation {
