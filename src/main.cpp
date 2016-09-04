@@ -1,4 +1,5 @@
 // Copyright 2016 peposso
+//
 #include <string>
 #include <vector>
 #include <utility>
@@ -15,9 +16,13 @@
 
 namespace {
 
-using namespace xlsxconverter;
+using ArgConfig = xlsxconverter::ArgConfig;
+using YamlConfig = xlsxconverter::YamlConfig;
+using Converter = xlsxconverter::Converter;
+namespace utils = xlsxconverter::utils;
+namespace handlers = xlsxconverter::handlers;
 
-struct Task {
+struct MainTask {
     struct RelationYaml {
         std::string id;
         YamlConfig yaml_config;
@@ -43,7 +48,7 @@ struct Task {
     std::atomic_int phase2_running;
     std::atomic_int phase3_running;
 
-    Task(ArgConfig& arg_config, int jobs)
+    MainTask(ArgConfig& arg_config, int jobs)
         : canceled(false),
           arg_config(arg_config) {
         if (arg_config.targets.empty() && !arg_config.yaml_search_paths.empty()) {
@@ -97,7 +102,7 @@ struct Task {
 
             try {
                 auto yaml_config = YamlConfig(target, arg_config);
-                for (auto rel: yaml_config.relations()) {
+                for (auto rel : yaml_config.relations()) {
                     // check file existance.
                     arg_config.search_yaml_path(rel.from);
                     if (!relations.any(id_functor(rel.id))) {
@@ -207,7 +212,7 @@ struct Task {
                     break;
                 }
                 default: {
-                    throw EXCEPTION(yaml_config.path, 
+                    throw EXCEPTION(yaml_config.path,
                                     ": handler.type=", yaml_config.handler.type_name,
                                     ": not implemented.");
                 }
@@ -216,11 +221,10 @@ struct Task {
     }
 };
 
-}  // namespace anonymous
+}  // anonymous namespace
 
-int main(int argc, char** argv)
-{
-    using namespace xlsxconverter;
+int main(int argc, char** argv) {
+    using ArgConfig = xlsxconverter::ArgConfig;
 
     boost::optional<ArgConfig> arg_config;
     try {
@@ -241,7 +245,7 @@ int main(int argc, char** argv)
         utils::log("jobs: ", jobs);
     }
 
-    Task task(arg_config.value(), jobs);
+    MainTask task(arg_config.value(), jobs);
 
     // if (jobs > task.targets.size()) {
     //     jobs = task.targets.size();

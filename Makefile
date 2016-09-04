@@ -8,6 +8,9 @@ HEADERS = $(wildcard src/*.hpp) $(wildcard src/handlers/*.hpp) $(wildcard src/ut
 
 CPPFLAGS = -std=c++11 -O3 -I./src -I./external -I./external/ziplib/Source/ZipLib -I./external/pugixml -I./external/yaml-cpp/include
 
+BUILD_REVISION = $(shell git rev-parse --short HEAD)
+CPPFLAGS += -DBUILD_REVISION=\"$(BUILD_REVISION)\"
+
 LDFLAGS = -L./external -lzip -lpugixml -lyaml-cpp -lpthread
 ifneq ($(filter $(MSYSTEM),MINGW64 MINGW32),)
 	EXTRA_LDFLAGS = -static -static-libgcc -static-libstdc++

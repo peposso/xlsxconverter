@@ -1,5 +1,6 @@
+// Copyright 2016 peposso
+//
 #pragma once
-
 #include <sys/stat.h>
 #include <string>
 #include <vector>
@@ -619,4 +620,4 @@ struct Workbook
     }
 };
 
-}
+}  // namespace xlsxconverter

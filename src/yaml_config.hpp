@@ -1,3 +1,5 @@
+// Copyright 2016 peposso
+//
 #pragma once
 #include <string>
 #include <vector>
@@ -37,17 +39,18 @@ struct YamlConfig {
         YAML::Node context;
 
         inline Handler() {}
-        inline Handler(YAML::Node node) {
+        inline explicit Handler(YAML::Node node) {
             auto typepath = utils::split(node["type"].as<std::string>(), '.');
             type_name = typepath[typepath.size()-1];
-            if      (type_name == "none") type = Type::kNone;
-            else if (type_name == "json") type = Type::kJson;
-            else if (type_name == "csv") type = Type::kCSV;
-            else if (type_name == "djangofixture") type = Type::kDjangoFixture;
-            else if (type_name == "lua") type = Type::kLua;
-            else if (type_name == "template") type = Type::kTemplate;
-            else if (type_name == "enum") type = Type::kEnum;
-            else throw EXCEPTION("unknown handler.type: ", type_name);
+            if      (type_name == "none")          { type = Type::kNone; }
+            else if (type_name == "json")          { type = Type::kJson; }
+            else if (type_name == "csv")           { type = Type::kCSV; }
+            else if (type_name == "djangofixture") { type = Type::kDjangoFixture; }
+            else if (type_name == "lua")           { type = Type::kLua; }
+            else if (type_name == "template")      { type = Type::kTemplate; }
+            else if (type_name == "enum")          { type = Type::kEnum; }
+            else                                   { throw EXCEPTION("unknown handler.type: ", 
+                                                                     type_name); }
 
             if (auto n = node["path"]) path = n.as<std::string>();
             if (auto n = node["source"]) source = n.as<std::string>();
@@ -175,8 +178,9 @@ struct YamlConfig {
 
     inline
     YamlConfig(const std::string& path_, const ArgConfig& arg_config_)
-    : path(path_), arg_config(arg_config_)
-    {
+        : path(path_),
+          arg_config(arg_config_) {
+
         std::string fullpath = arg_config.search_yaml_path(path);
         YAML::Node doc;
         try {
