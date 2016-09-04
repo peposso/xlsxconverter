@@ -4,7 +4,7 @@ TARGET = xlsxconverter
 SRCS = $(wildcard src/*.cpp)
 OBJS = $(SRCS:%.cpp=%.o)
 LIBS = external/libyaml-cpp.a external/libzip.a external/libpugixml.a
-HEADERS = $(wildcard *.hpp) $(wildcard handlers/*.hpp) $(wildcard utils/*.hpp)
+HEADERS = $(wildcard src/*.hpp) $(wildcard src/handlers/*.hpp) $(wildcard src/utils/*.hpp)
 
 CPPFLAGS = -std=c++11 -O3 -I./src -I./external -I./external/ziplib/Source/ZipLib -I./external/pugixml -I./external/yaml-cpp/include
 
@@ -61,7 +61,7 @@ endif
 
 all: $(TARGET)
 
-main.o: main.cpp $(HEADERS) Makefile
+src/main.o: src/main.cpp $(HEADERS) Makefile
 
 external/libzip.a:
 	cd external/ziplib && $(MAKE) CC=$(CC) CXX=$(CXX)

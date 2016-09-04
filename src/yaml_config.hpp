@@ -17,8 +17,7 @@
 
 namespace xlsxconverter {
 
-struct YamlConfig
-{
+struct YamlConfig {
     struct Handler {
         enum Type {
             kError, kNone, kJson, kCSV, kDjangoFixture, kLua, kTemplate, kEnum,
@@ -88,7 +87,6 @@ struct YamlConfig
                     for (auto item: n) {
                         auto s = item.as<std::string>();
                         anyof_strset.insert(s);
-                        utils::log("anyof_strset.insert()", s);
                         if (utils::isdecimal(s))
                             anyof_intset.insert(std::stoi(s));
                     }
@@ -179,10 +177,7 @@ struct YamlConfig
     YamlConfig(const std::string& path_, const ArgConfig& arg_config_)
     : path(path_), arg_config(arg_config_)
     {
-        std::string fullpath = arg_config.yaml_search_path + "/" + path;
-        if (!utils::fs::exists(fullpath)) {
-            throw EXCEPTION("yaml=", fullpath, " does not exist.");
-        }
+        std::string fullpath = arg_config.search_yaml_path(path);
         YAML::Node doc;
         try {
             doc = YAML::LoadFile(fullpath.c_str());

@@ -14,8 +14,7 @@
 
 namespace xlsxconverter {
 
-struct Converter
-{
+struct Converter {
     static inline
     bool truthy(const std::string& s) {
         static std::unordered_set<std::string> set = {

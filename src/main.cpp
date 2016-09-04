@@ -46,8 +46,8 @@ struct Task {
     Task(ArgConfig& arg_config, int jobs)
         : canceled(false),
           arg_config(arg_config) {
-        if (arg_config.targets.empty() && arg_config.yaml_search_path != ".") {
-            for (auto& target : utils::fs::walk(arg_config.yaml_search_path, "*.yaml")) {
+        if (arg_config.targets.empty() && !arg_config.yaml_search_paths.empty()) {
+            for (auto& target : arg_config.search_yaml_target_all()) {
                 targets.push_back(target);
             }
         } else {
@@ -85,7 +85,7 @@ struct Task {
 
     struct id_functor {
         std::string id;
-        inline id_functor(std::string id) : id(id) {}
+        inline explicit id_functor(std::string id) : id(id) {}
         template<class T> bool operator()(T& t) { return t.id == id; }
     };
 
@@ -98,17 +98,15 @@ struct Task {
             try {
                 auto yaml_config = YamlConfig(target, arg_config);
                 for (auto rel: yaml_config.relations()) {
-                    std::string fullpath = utils::fs::joinpath(arg_config.yaml_search_path, rel.from);
-                    if (!utils::fs::exists(fullpath)) {
-                        throw EXCEPTION(target, ": relational_yaml=", fullpath, " does not exist.");
-                    }
+                    // check file existance.
+                    arg_config.search_yaml_path(rel.from);
                     if (!relations.any(id_functor(rel.id))) {
                         relations.push_back(std::move(rel));
                     }
                 }
                 yaml_configs.push_back(std::move(yaml_config));
             } catch (std::exception& exc) {
-                throw EXCEPTION(target, ": ", exc.what());
+                throw EXCEPTION(target, ": relation error: ", exc.what());
             }
         }
         --phase1_running;
@@ -233,7 +231,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    if (arg_config->targets.empty() && arg_config->yaml_search_path == ".") {
+    if (arg_config->targets.empty() && arg_config->yaml_search_paths.empty()) {
         std::cerr << ArgConfig::help() << std::endl;
         return 1;
     }

@@ -8,12 +8,11 @@
 
 namespace xlsxconverter {
 
-struct ArgConfig
-{
+struct ArgConfig {
     std::string name;
     std::string target;
     std::string xls_search_path;
-    std::string yaml_search_path;
+    std::vector<std::string> yaml_search_paths;
     std::string output_base_path;
     bool quiet;
     int tz_seconds;
@@ -25,12 +24,11 @@ struct ArgConfig
     inline
     ArgConfig(int argc, char** argv)
         : xls_search_path("."),
-          yaml_search_path("."),
+          yaml_search_paths(),
           output_base_path("."),
           quiet(false),
           tz_seconds(utils::dateutil::local_tz_seconds()),
-          jobs(std::thread::hardware_concurrency())
-    {
+          jobs(std::thread::hardware_concurrency()) {
         name = argc > 0 ? argv[0] : "";
         for (int i = 1; i < argc; ++i) {
             args.push_back(argv[i]);
@@ -45,7 +43,7 @@ struct ArgConfig
                     xls_search_path = *++it;
                     continue;
                 } else if (arg == "--yaml_search_path" && !last) {
-                    yaml_search_path = *++it;
+                    yaml_search_paths = utils::split(*++it, ',');
                     continue;
                 } else if (arg == "--output_base_path" && !last) {
                     output_base_path = *++it;
@@ -102,6 +100,37 @@ struct ArgConfig
             "";
 
         return ss.str();
+    }
+
+    inline
+    std::string search_yaml_path(const std::string& name) {
+        if (yaml_search_paths.empty()) {
+            // from cwd
+            if (utils::fs::exists(name)) return name;
+            throw EXCEPTION(name, ": does not exist.");
+        }
+        for (std::string& dir : yaml_search_paths) {
+            auto path = utils::fs::joinpath(dir, name);
+            if (utils::fs::exists(path)) return path;
+        }
+        throw EXCEPTION(name, ": does not exist.");
+    }
+
+    inline
+    std::vector<std::string> search_yaml_target_all() {
+        if (yaml_search_paths.empty()) {
+            throw EXCEPTION("requires --yaml_search_path.");
+        }
+        std::vector<std::string> r;
+        for (std::string& dir : yaml_search_paths) {
+            for (std::string& name : utils::fs::walk(dir, "*.yaml")) {
+                r.push_back(name);
+            }
+        }
+        if (r.empty()) {
+            throw EXCEPTION("no yaml files.");
+        }
+        return r;
     }
 };
 
