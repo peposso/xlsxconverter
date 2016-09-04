@@ -1,3 +1,7 @@
+// Copyright 2016 peposso
+#include <string>
+#include <vector>
+#include <utility>
 #include <functional>
 #include <thread>
 #include <mutex>
@@ -10,10 +14,10 @@
 #define EXCEPTION XLSXCONVERTER_UTILS_EXCEPTION
 
 namespace {
+
 using namespace xlsxconverter;
 
-struct Task
-{
+struct Task {
     struct RelationYaml {
         std::string id;
         YamlConfig yaml_config;
@@ -41,14 +45,13 @@ struct Task
 
     Task(ArgConfig& arg_config, int jobs)
         : canceled(false),
-          arg_config(arg_config)
-    {
+          arg_config(arg_config) {
         if (arg_config.targets.empty() && arg_config.yaml_search_path != ".") {
-            for (auto& target: utils::fs::walk(arg_config.yaml_search_path, "*.yaml")) {
+            for (auto& target : utils::fs::walk(arg_config.yaml_search_path, "*.yaml")) {
                 targets.push_back(target);
             }
         } else {
-            for (auto& target: arg_config.targets) {
+            for (auto& target : arg_config.targets) {
                 targets.push_back(target);
             }
         }
@@ -64,17 +67,17 @@ struct Task
         // yaml
         phase1();
         if (canceled) return;
-        { lock_guard lock(phase1_done); };
+        { lock_guard lock(phase1_done); }
 
         // relation
         phase2();
         if (canceled) return;
-        { lock_guard lock(phase2_done); };
+        { lock_guard lock(phase2_done); }
 
         // relation mapping
         phase3();
         if (canceled) return;
-        { lock_guard lock(phase3_done); };
+        { lock_guard lock(phase3_done); }
 
         // convert
         phase4();
@@ -82,7 +85,7 @@ struct Task
 
     struct id_functor {
         std::string id;
-        inline id_functor(std::string id) : id(id) {};
+        inline id_functor(std::string id) : id(id) {}
         template<class T> bool operator()(T& t) { return t.id == id; }
     };
 
@@ -124,12 +127,14 @@ struct Task
 
             try {
                 auto yaml_config = YamlConfig(relation->from, arg_config);
-                for (auto rel: yaml_config.relations()) {
-                    if (!relations.any(id_functor(rel.id)) && !relation_yamls.any(id_functor(rel.id))) {
+                for (auto rel : yaml_config.relations()) {
+                    if (!relations.any(id_functor(rel.id)) &&
+                        !relation_yamls.any(id_functor(rel.id))) {
                         relations.push_back(std::move(rel));
                     }
                 }
-                relation_yamls.push_back(RelationYaml(relation->id, std::move(yaml_config), std::move(relation.value())));
+                relation_yamls.push_back(RelationYaml(relation->id, std::move(yaml_config),
+                                                      std::move(relation.value())));
             } catch (std::exception& exc) {
                 throw EXCEPTION(relation->from, ": ", exc.what());
             }
@@ -204,7 +209,8 @@ struct Task
                     break;
                 }
                 default: {
-                    throw EXCEPTION(yaml_config.path, ": handler.type=", yaml_config.handler.type_name,
+                    throw EXCEPTION(yaml_config.path, 
+                                    ": handler.type=", yaml_config.handler.type_name,
                                     ": not implemented.");
                 }
             }

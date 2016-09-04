@@ -36,5 +36,5 @@ deploy:
   file: "${RELEASE_PKG_FILE}"
   on:
     repo: peposso/xlsxconverter
-    tags: false
+    tags: true
   skip_cleanup: true

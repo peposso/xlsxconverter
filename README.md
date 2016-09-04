@@ -16,20 +16,24 @@ xlsx to data converter written in c++11.
                   [--timezone <tz>]
                   [<target_yaml> ...]
     
-## e.g.
+## EXAMPLE
     
     $ tree
     .
+    ├── bin
+    │   └── xlsxconverter
     ├── xls
     │   └── postalcode.xlsx
     └── yaml
         └── postalcode.yml
 
-    $ ./xlsxconverter --yaml_search_path yaml --xls_search_path xls --output_base_path json
+    $ ./bin/xlsxconverter --yaml_search_path yaml --xls_search_path xls --output_base_path json
     output: json/postalcode.json
 
     $ tree
     .
+    ├── bin
+    │   └── xlsxconverter
     ├── json
     │   └── postalcode.json
     ├── xls
@@ -39,29 +43,29 @@ xlsx to data converter written in c++11.
 
 ## YAML FORMAT
 
-| key                      | type | desc |
-| ------------------------ | ---- | ---- |
-| target                   | str  | xls:///(xlsx_path)#(sheet_name) |
-| row                      | int  | column name row number |
-| handler.path             | str  | output file path |
-| handler.type             | str  | output file type (json,djangofixture,csv,lua,template) |
-| handler.indent           | int  | indentation spaces (in json,lua) |
-| handler.sort_keys        | bool | with sorted keys (in json,lua) |
-| handler.comment_row      | int  | with comment line (in csv) |
-| handler.csv_field_type   | int  | with type name line (in csv) |
-| handler.csv_field_column | int  | with column name line (in csv) |
-| handler.source           | str  | template source path (in template) |
-| handler.context          | map  | additional context (in template) |
-| fields[].column          | str  | output field name |
-| fields[].name            | str  | input field name |
-| fields[].type            | str  | field type (int,float,char,bool,foreignkey,datetime,unixtime,isignored) |
-| fields[].type_alias      | str  | field type name (in csv) |
-| fields[].default         | any  | field default value |
-| fields[].optional        | bool | no except unless xls column |
-| fields[].relation.from   | str  | select $relation.key from $relation.from when $relation.column = cell.value; |
-| fields[].relation.column | str  |  |
-| fields[].relation.key    | str  |  |
-| fields[].definition      | map  | mapping value |
+| key                          | type | desc |
+| ---------------------------- | ---- | ---- |
+| target                       | str  | xls:///(xlsx_path)#(sheet_name) |
+| row                          | int  | column name row number |
+| handler.path                 | str  | output file path |
+| handler.type                 | str  | output file type (json,djangofixture,csv,lua,template) |
+| handler.indent               | int  | indentation spaces (in json,lua) |
+| handler.sort_keys            | bool | with sorted keys (in json,lua) |
+| handler.comment_row          | int  | with comment line (in csv) |
+| handler.csv_field_type       | int  | with type name line (in csv) |
+| handler.csv_field_column     | int  | with column name line (in csv) |
+| handler.source               | str  | template source path (in template) |
+| handler.context              | map  | additional context (in template) |
+| fields[].column              | str  | output field name |
+| fields[].name                | str  | input field name |
+| fields[].type                | str  | field type (int,float,char,bool,foreignkey,datetime,unixtime,isignored) |
+| fields[].type_alias          | str  | field type name (in csv) |
+| fields[].default             | any  | field default value |
+| fields[].optional            | bool | no except unless xls column |
+| fields[].relation.from       | str  | select $column from $from when $key = cell.value; |
+| fields[].relation.column     | str  |  |
+| fields[].relation.key        | str  |  |
+| fields[].definition          | map  | mapping value |
 | fields[].validate.unique     | bool | checking if unique |
 | fields[].validate.sorted     | bool | checking if sorted |
 | fields[].validate.sequential | bool | checking if sequential |

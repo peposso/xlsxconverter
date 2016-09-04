@@ -1,12 +1,12 @@
 
 TARGET = xlsxconverter
 
-SRCS = $(wildcard *.cpp)
+SRCS = $(wildcard src/*.cpp)
 OBJS = $(SRCS:%.cpp=%.o)
 LIBS = external/libyaml-cpp.a external/libzip.a external/libpugixml.a
 HEADERS = $(wildcard *.hpp) $(wildcard handlers/*.hpp) $(wildcard utils/*.hpp)
 
-CPPFLAGS = -std=c++11 -O3 -I. -I./external -I./external/ziplib/Source/ZipLib -I./external/pugixml -I./external/yaml-cpp/include
+CPPFLAGS = -std=c++11 -O3 -I./src -I./external -I./external/ziplib/Source/ZipLib -I./external/pugixml -I./external/yaml-cpp/include
 
 LDFLAGS = -L./external -lzip -lpugixml -lyaml-cpp -lpthread
 ifneq ($(filter $(MSYSTEM),MINGW64 MINGW32),)
@@ -104,6 +104,7 @@ test-xlsx:
 	-rm test_xlsx.exe
 
 test: $(TARGET)
+	-./external/cpplint.py --linelength=100 --filter=-build/c++11 --extensions=hpp,cpp src/**/*.hpp src/**.hpp src/**.cpp
 	$(LDD) $(TARGET)
 	$(DEBUGGER) $(TEST)
 	python test/check_json.py test/sample.json
