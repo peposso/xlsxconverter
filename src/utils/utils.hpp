@@ -1,3 +1,5 @@
+// Copyright (c) 2016 peposso All Rights Reserved.
+// Released under the MIT license
 #pragma once
 #include <sys/stat.h>
 #include <iostream>
@@ -304,7 +306,7 @@ struct mutex_map
     }
     inline boost::optional<V&> getref(const K& k) {
         std::lock_guard<M> lock(mutex);
-        auto it = map.find(k);
+        const auto& it = map.find(k);
         if (it == map.end()) return boost::none;
         return it->second;
     }

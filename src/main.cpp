@@ -34,10 +34,10 @@ struct MainTask {
         {}
     };
     using lock_guard = std::lock_guard<std::mutex>;
-    utils::mutex_list<std::string, utils::spinlock> targets;
-    utils::mutex_list<YamlConfig, utils::spinlock> yaml_configs;
-    utils::mutex_list<YamlConfig::Field::Relation, utils::spinlock> relations;
-    utils::mutex_list<RelationYaml, utils::spinlock> relation_yamls;
+    utils::mutex_list<std::string> targets;
+    utils::mutex_list<YamlConfig> yaml_configs;
+    utils::mutex_list<YamlConfig::Field::Relation> relations;
+    utils::mutex_list<RelationYaml> relation_yamls;
 
     ArgConfig& arg_config;
     bool canceled;
@@ -50,7 +50,12 @@ struct MainTask {
 
     MainTask(ArgConfig& arg_config, int jobs)
         : canceled(false),
-          arg_config(arg_config) {
+          arg_config(arg_config),
+          targets(),
+          yaml_configs(),
+          relations(),
+          relation_yamls() {
+
         if (arg_config.targets.empty() && !arg_config.yaml_search_paths.empty()) {
             for (auto& target : arg_config.search_yaml_target_all()) {
                 targets.push_back(target);
@@ -66,6 +71,8 @@ struct MainTask {
         phase1_running = jobs;
         phase2_running = jobs;
         phase3_running = jobs;
+
+        utils::logging_lock();
     }
 
     void run() {

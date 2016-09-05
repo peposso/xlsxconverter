@@ -17,7 +17,10 @@ struct Validator {
     boost::optional<std::string> prev_strvalue;
 
     inline Validator(YamlConfig::Field& field)
-        : field(field), validate(field.validate.value()) {}
+        : field(field),
+          validate(field.validate.value()),
+          prev_intvalue(boost::none),
+          prev_strvalue(boost::none) {}
 
     inline void operator()(std::string& val) {
         if (validate.unique) {

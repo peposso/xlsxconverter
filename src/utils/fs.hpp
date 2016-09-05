@@ -1,3 +1,5 @@
+// Copyright (c) 2016 peposso All Rights Reserved.
+// Released under the MIT license
 #pragma once
 #include <stdio.h>
 #include <dirent.h>
