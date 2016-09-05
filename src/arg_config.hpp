@@ -1,3 +1,5 @@
+// Copyright (c) 2016 peposso All Rights Reserved.
+// Released under the MIT license
 #pragma once
 #include <string>
 #include <vector>
@@ -94,22 +96,13 @@ struct ArgConfig {
         auto ss = std::stringstream();
         ss <<
             "xlsxconverter (rev."  << BUILD_REVISION << ")" << std::endl <<
-            std::endl <<
             usage  << " [--quiet]" << std::endl <<
             indent << " [--jobs <'full'|'half'|'quarter'|int>]" << std::endl <<
             indent << " [--xls_search_path <path>]" << std::endl <<
-            indent << " [--yaml_search_path <path>]" << std::endl <<
+            indent << " [--yaml_search_path <paths>]" << std::endl <<
             indent << " [--output_base_path <path>]" << std::endl <<
             indent << " [--timezone <tz>]" << std::endl <<
             indent << " [<target_yaml> ...]" << std::endl <<
-            "" << std::endl <<
-            "--quiet               : no stdout" << std::endl <<
-            "--jobs <>             : number of threads" << std::endl <<
-            "--xls_search_path <>  : xls base path for config.target" << std::endl <<
-            "--yaml_search_path <> : yaml base paths (delim=,) for <target_yaml>,config.fields[].relation.from" << std::endl <<
-            "--output_base_path <> : output base path for config.handler.path" << std::endl <<
-            "--timezone <>         : timezone for config.fields[].type=datetime,unixtime" << std::endl <<
-            "<target_yaml>         : if empty, all yaml from --yaml_search_path." << std::endl <<
             "";
 
         return ss.str();
@@ -137,6 +130,9 @@ struct ArgConfig {
         std::vector<std::string> r;
         for (std::string& dir : yaml_search_paths) {
             for (std::string& name : utils::fs::walk(dir, "*.yaml")) {
+                r.push_back(name);
+            }
+            for (std::string& name : utils::fs::walk(dir, "*.yml")) {
                 r.push_back(name);
             }
         }

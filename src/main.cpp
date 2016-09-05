@@ -1,5 +1,5 @@
-// Copyright 2016 peposso
-//
+// Copyright (c) 2016 peposso All Rights Reserved.
+// Released under the MIT license
 #include <string>
 #include <vector>
 #include <utility>
