@@ -128,7 +128,8 @@ struct ArgConfig {
             throw EXCEPTION("requires --yaml_search_path.");
         }
         std::vector<std::string> r;
-        for (std::string& dir : yaml_search_paths) {
+        if (!yaml_search_paths.empty()) {
+            auto dir = yaml_search_paths[0];
             for (std::string& name : utils::fs::walk(dir, "*.yaml")) {
                 r.push_back(name);
             }
