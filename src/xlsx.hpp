@@ -1,7 +1,8 @@
 // Copyright (c) 2016 peposso All Rights Reserved.
 // Released under the MIT license
 #pragma once
-#include <sys/stat.h>
+#include <sys/stat.h>  // NOLINT
+#include <tuple>
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -11,10 +12,10 @@
 #include <fstream>
 #include <memory>
 #include <exception>
-#include <time.h>
+#include <utility>
 
-#include <ZipFile.h>
-#include <pugixml.hpp>
+#include <ZipFile.h>  // NOLINT
+#include <pugixml.hpp>  // NOLINT
 
 namespace xlsx {
 
@@ -38,12 +39,11 @@ std::string sscat(const A&...a) {
 
 struct Exception: std::runtime_error {
     template<class...A>
-    Exception(A...a) : std::runtime_error(sscat(a...).c_str()) {}
+    inline explicit Exception(A...a) : std::runtime_error(sscat(a...).c_str()) {}
 };
 
 
-struct StyleSheet
-{
+struct StyleSheet {
     std::vector<int> num_fmts_by_xf_index;
     std::unordered_map<int, std::string> format_codes;
 
@@ -113,14 +113,14 @@ struct StyleSheet
     }
 
     inline
-    StyleSheet(std::unique_ptr<pugi::xml_document> doc) {
+    explicit StyleSheet(std::unique_ptr<pugi::xml_document> doc) {
         auto ss = doc->child("styleSheet");
-        for (auto& nf: ss.child("numFmts").children("numFmt")) {
+        for (auto& nf : ss.child("numFmts").children("numFmt")) {
             int fmtid = nf.attribute("numFmtId").as_int();
             auto fmtcode = nf.attribute("formatCode").as_string();
             format_codes[fmtid] = fmtcode;
         }
-        for (auto& xf: ss.child("cellXfs").children("xf")) {
+        for (auto& xf : ss.child("cellXfs").children("xf")) {
             int fmtid = xf.attribute("numFmtId").as_int();
             num_fmts_by_xf_index.push_back(fmtid);
         }
@@ -150,7 +150,7 @@ struct StyleSheet
         bool got_sep = false;
         int date_count = 0;
         int num_count = 0;
-        for (auto c: s) {
+        for (auto c : s) {
             if (date_chars().find(c) != std::string::npos) {
                 date_count += 5;
             } else if (num_chars().find(c) != std::string::npos) {
@@ -176,7 +176,7 @@ struct StyleSheet
     std::string remove_bracketed(std::string s) {
         std::string r;
         bool in_bracket = false;
-        for (auto c: s) {
+        for (auto c : s) {
             if (in_bracket) {
                 if (c == ']') in_bracket = false;
             } else {
@@ -192,8 +192,7 @@ struct StyleSheet
 };
 
 
-struct Cell
-{
+struct Cell {
     enum Type {
         kEmpty, kString, kInt, kDouble, kDateTime
     };
@@ -213,8 +212,7 @@ struct Cell
     Cell(int row, int col, std::string v_, std::string t, int s,
          std::shared_ptr<std::vector<std::string>> shared_string,
          std::shared_ptr<StyleSheet> style_sheet)
-        : row(row), col(col), v(v_)
-    {
+        : row(row), col(col), v(v_) {
         if (v == "") {
             type = Type::kEmpty;
         } else if (t == "s") {
@@ -287,7 +285,7 @@ struct Cell
     }
 
     inline
-    int64_t as_time64(int tz_seconds=0) {
+    int64_t as_time64(int tz_seconds = 0) {
         // xldate is double.
         //   int-part: 1899-12-30 based days.
         //   frac-part: time seconds / (24*60*60).
@@ -309,7 +307,7 @@ struct Cell
     }
 
     inline
-    time_t as_time(int tz_seconds=0) {
+    time_t as_time(int tz_seconds = 0) {
         return as_time64(tz_seconds);
     }
 
@@ -319,8 +317,7 @@ struct Cell
     }
 };
 
-struct Sheet
-{
+struct Sheet {
     std::string rid;
     std::string name;
     std::unique_ptr<pugi::xml_document> doc;
@@ -343,16 +340,17 @@ struct Sheet
           std::shared_ptr<std::vector<std::string>> shared_string_,
           std::shared_ptr<StyleSheet> style_sheet_)
         : rid(rid_), name(name_),
-          doc(std::move(doc_)), 
+          doc(std::move(doc_)),
           shared_string(shared_string_),
           style_sheet(style_sheet_)
     {}
 
     inline
     std::unordered_map<int, pugi::xml_node>& row_nodes() {
-        if (!row_nodes_.empty())
+        if (!row_nodes_.empty()) {
             return row_nodes_;
-        for(auto& row: doc->child("worksheet").child("sheetData").children("row")) {
+        }
+        for (auto& row : doc->child("worksheet").child("sheetData").children("row")) {
             int r = row.attribute("r").as_int() - 1;
             row_nodes_[r] = row;
         }
@@ -365,7 +363,7 @@ struct Sheet
             return nrows_;
         }
         int max = -1;
-        for (auto& pair: row_nodes()) {
+        for (auto& pair : row_nodes()) {
             int r = pair.first;
             if (r > max) max = r;
         }
@@ -379,9 +377,9 @@ struct Sheet
             return ncols_;
         }
         int max = -1;
-        for (auto& pair: row_nodes()) {
+        for (auto& pair : row_nodes()) {
             int colmax = -1;
-            for (auto& c: pair.second.children("c")) {
+            for (auto& c : pair.second.children("c")) {
                 std::string r = c.attribute("r").as_string();
                 int colx, rowx_;
                 std::tie(rowx_, colx) = parse_cellname(r);
@@ -413,8 +411,7 @@ struct Sheet
         auto& row_cells = cells_[rowx];
         row_cells.clear();
         int i = 0;
-        for (auto& c: row_nodes()[rowx].children("c")) {
-            // TODO: fix colx by attribute("r")
+        for (auto& c : row_nodes()[rowx].children("c")) {
             std::string r = c.attribute("r").as_string();
             int colx, rowx_;
             std::tie(rowx_, colx) = parse_cellname(r);
@@ -468,8 +465,7 @@ struct Sheet
 };
 
 
-struct Workbook
-{
+struct Workbook {
     ZipArchive::Ptr archive;
     std::unordered_map<std::string, int> entry_indexes;
     std::vector<std::string> entry_names;  // for debug
@@ -485,9 +481,8 @@ struct Workbook
     Workbook() = delete;
 
     inline
-    Workbook(std::string filename)
-        : shared_string(new std::vector<std::string>())
-    {
+    explicit Workbook(std::string filename)
+            : shared_string(new std::vector<std::string>()) {
         struct stat statbuf;
         if (::stat(filename.c_str(), &statbuf) != 0) {
             throw Exception("file=", filename, " does not exist.");
@@ -498,14 +493,13 @@ struct Workbook
         int max_sheet_id = -1;
         size_t count = archive->GetEntriesCount();
         std::vector<int> rel_entries;
-        for (size_t i = 0; i < count; ++i)
-        {
-            auto entry = archive->GetEntry(int(i));
+        for (size_t i = 0; i < count; ++i) {
+            auto entry = archive->GetEntry(static_cast<int>(i));
             std::string fullname = entry->GetFullName();
             auto p = fullname.rfind('.');
             if (p == std::string::npos) continue;
             auto ext = fullname.substr(p);
-            if (ext == ".xml" ) {
+            if (ext == ".xml") {
             } else if (ext == ".rels") {
                 rel_entries.push_back(i);
             } else {
@@ -528,9 +522,9 @@ struct Workbook
             throw Exception("cant find rels !!");
         }
 
-        for (int i: rel_entries) {
+        for (int i : rel_entries) {
             auto doc = load_doc(i);
-            for (auto rel: doc->child("Relationships").children("Relationship")) {
+            for (auto rel : doc->child("Relationships").children("Relationship")) {
                 auto rid = rel.attribute("Id").as_string();
                 std::string target = rel.attribute("Target").as_string();
                 auto ext = target.substr(target.size()-4);
@@ -543,7 +537,7 @@ struct Workbook
         }
 
         auto workbook_doc = load_doc("xl/workbook.xml");
-        for (auto sheet: workbook_doc->child("workbook").child("sheets").children("sheet")) {
+        for (auto sheet : workbook_doc->child("workbook").child("sheets").children("sheet")) {
             // auto sheet_id = sheet.attribute("sheetId").as_int();
             auto sheet_rid = sheet.attribute("r:id").as_string();
             auto sheet_name = sheet.attribute("name").as_string();
@@ -552,7 +546,7 @@ struct Workbook
         }
 
         auto shared_string_doc = load_doc("xl/sharedStrings.xml");
-        for (auto si: shared_string_doc->child("sst").children("si")) {
+        for (auto si : shared_string_doc->child("sst").children("si")) {
             auto text = si.child("t").text().as_string();
             shared_string->push_back(text);
         }
@@ -620,4 +614,4 @@ struct Workbook
     }
 };
 
-}  // namespace xlsxconverter
+}  // namespace xlsx

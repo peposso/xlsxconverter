@@ -1,6 +1,9 @@
 // Copyright (c) 2016 peposso All Rights Reserved.
 // Released under the MIT license
 #pragma once
+#include <string>
+#include <unordered_set>
+
 #include "yaml_config.hpp"
 #include "utils.hpp"
 
@@ -9,26 +12,30 @@
 namespace xlsxconverter {
 
 struct Validator {
-    YamlConfig::Field& field;
-    YamlConfig::Field::Validate& validate;
+    const YamlConfig::Field& field;
+    const YamlConfig::Field::Validate& validate;
     std::unordered_set<std::string> unique_strset;
     std::unordered_set<int64_t> unique_intset;
     boost::optional<int64_t> prev_intvalue;
     boost::optional<std::string> prev_strvalue;
 
-    inline Validator(YamlConfig::Field& field)
+    inline explicit Validator(const YamlConfig::Field& field)
         : field(field),
           validate(field.validate.value()),
           prev_intvalue(boost::none),
           prev_strvalue(boost::none) {}
 
-    inline void operator()(std::string& val) {
+    inline void operator()(const std::string& val) {
         if (validate.unique) {
-            if (unique_strset.count(val) != 0) throw EXCEPTION("unique validation error. value=", val);
+            if (unique_strset.count(val) != 0) {
+                throw EXCEPTION("unique validation error. value=", val);
+            }
             unique_strset.insert(val);
         }
         if (validate.anyof) {
-            if (validate.anyof_strset.count(val) == 0) throw EXCEPTION("anyof validation error. value=", val);
+            if (validate.anyof_strset.count(val) == 0) {
+                throw EXCEPTION("anyof validation error. value=", val);
+            }
         }
         if (validate.min != boost::none) {
             throw EXCEPTION("min validation requires int type. value=", val);
@@ -49,19 +56,27 @@ struct Validator {
             prev_strvalue = val;
         }
     }
-    inline void operator()(int64_t& val) {
+    inline void operator()(int64_t val) {
         if (validate.unique) {
-            if (unique_intset.count(val) != 0) throw EXCEPTION("unique validation error. value=", val);
+            if (unique_intset.count(val) != 0) {
+                throw EXCEPTION("unique validation error. value=", val);
+            }
             unique_intset.insert(val);
         }
         if (validate.anyof) {
-            if (validate.anyof_intset.count(val) == 0) throw EXCEPTION("anyof validation error. value=", val);
+            if (validate.anyof_intset.count(val) == 0) {
+                throw EXCEPTION("anyof validation error. value=", val);
+            }
         }
         if (validate.min != boost::none) {
-            if (val < validate.min.value()) throw EXCEPTION("min=", validate.min.value(), " validation error. value=", val);
+            if (val < validate.min.value()) {
+                throw EXCEPTION("min=", validate.min.value(), " validation error. value=", val);
+            }
         }
         if (validate.max != boost::none) {
-            if (validate.max.value() < val) throw EXCEPTION("max=", validate.max.value(), " validation error. value=", val);
+            if (validate.max.value() < val) {
+                throw EXCEPTION("max=", validate.max.value(), " validation error. value=", val);
+            }
         }
         if (validate.sorted) {
             if (prev_intvalue != boost::none) {
@@ -82,6 +97,6 @@ struct Validator {
 };
 
 
-}
+}  // namespace xlsxconverter
 
 #undef EXCEPTION

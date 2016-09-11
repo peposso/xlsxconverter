@@ -9,9 +9,9 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include <boost/optional.hpp>
-#include <boost/any.hpp>
-#include <yaml-cpp/yaml.h>
+#include <boost/optional.hpp>  // NOLINT
+#include <boost/any.hpp>  // NOLINT
+#include <yaml-cpp/yaml.h>  // NOLINT
 
 #include "utils.hpp"
 
@@ -38,19 +38,28 @@ struct YamlConfig {
         bool csv_field_column = false;
         YAML::Node context;
 
+        static inline
+        Type parse_type(const std::string& name) {
+            static const std::unordered_map<std::string, Type> map = {
+                {"none", Type::kNone},
+                {"json", Type::kJson},
+                {"csv", Type::kCSV},
+                {"djangofixture", Type::kDjangoFixture},
+                {"lua", Type::kLua},
+                {"template", Type::kTemplate},
+            };
+            return map.at(name);
+        }
+
         inline Handler() {}
         inline explicit Handler(YAML::Node node) {
             auto typepath = utils::split(node["type"].as<std::string>(), '.');
             type_name = typepath[typepath.size()-1];
-            if      (type_name == "none")          { type = Type::kNone; }
-            else if (type_name == "json")          { type = Type::kJson; }
-            else if (type_name == "csv")           { type = Type::kCSV; }
-            else if (type_name == "djangofixture") { type = Type::kDjangoFixture; }
-            else if (type_name == "lua")           { type = Type::kLua; }
-            else if (type_name == "template")      { type = Type::kTemplate; }
-            else if (type_name == "enum")          { type = Type::kEnum; }
-            else                                   { throw EXCEPTION("unknown handler.type: ", 
-                                                                     type_name); }
+            try {
+                type = parse_type(type_name);
+            } catch (std::out_of_range&) {
+                throw EXCEPTION("unknown handler.type: ", type_name);
+            }
 
             if (auto n = node["path"]) path = n.as<std::string>();
             if (auto n = node["source"]) source = n.as<std::string>();
@@ -79,7 +88,7 @@ struct YamlConfig {
             std::unordered_set<int64_t> anyof_intset;
             std::unordered_set<std::string> anyof_strset;
 
-            inline Validate(YAML::Node node) {
+            inline explicit Validate(YAML::Node node) {
                 if (auto n = node["unique"]) unique = n.as<bool>();
                 if (auto n = node["sorted"]) sorted = n.as<bool>();
                 if (auto n = node["sequential"]) sequential = n.as<bool>();
@@ -87,7 +96,7 @@ struct YamlConfig {
                 if (auto n = node["min"]) min = n.as<int64_t>();
                 if (auto n = node["anyof"]) {
                     anyof = true;
-                    for (auto item: n) {
+                    for (auto item : n) {
                         auto s = item.as<std::string>();
                         anyof_strset.insert(s);
                         if (utils::isdecimal(s))
@@ -101,7 +110,7 @@ struct YamlConfig {
             std::string from;
             std::string key;
             std::string id;
-            inline Relation(YAML::Node node) {
+            inline explicit Relation(YAML::Node node) {
                 if (auto n = node["column"]) column = n.as<std::string>();
                 if (auto n = node["from"]) from = n.as<std::string>();
                 if (auto n = node["key"]) key = n.as<std::string>();
@@ -121,20 +130,31 @@ struct YamlConfig {
         boost::optional<std::unordered_map<std::string, std::string>> definition = boost::none;
         int index = -1;
 
-        inline Field(YAML::Node node) {
+        static inline
+        Type parse_type(const std::string& name) {
+            static const std::unordered_map<std::string, Type> map = {
+                {"int", Type::kInt},
+                {"float", Type::kFloat},
+                {"bool", Type::kBool},
+                {"char", Type::kChar},
+                {"datetime", Type::kDateTime},
+                {"unixtime", Type::kUnixTime},
+                {"foreignkey", Type::kForeignKey},
+                {"isignored", Type::kIsIgnored},
+            };
+            return map.at(name);
+        }
+
+        inline explicit Field(YAML::Node node) {
             column = node["column"].as<std::string>();
             name = node["name"].as<std::string>();
 
             type_name = node["type"].as<std::string>();
-            if      (type_name == "int") type = Type::kInt;
-            else if (type_name == "float") type = Type::kFloat;
-            else if (type_name == "bool") type = Type::kBool;
-            else if (type_name == "char") type = Type::kChar;
-            else if (type_name == "datetime") type = Type::kDateTime;
-            else if (type_name == "unixtime") type = Type::kUnixTime;
-            else if (type_name == "foreignkey") type = Type::kForeignKey;
-            else if (type_name == "isignored") type = Type::kIsIgnored;
-            else throw EXCEPTION("unknown field.type: ", type_name);
+            try {
+                type = parse_type(type_name);
+            } catch (std::out_of_range&) {
+                throw EXCEPTION("unknown field.type: ", type_name);
+            }
 
             if (auto o = node["type_alias"]) type_alias = o.as<std::string>();
             if (auto o = node["optional"]) optional = o.as<bool>();
@@ -157,7 +177,7 @@ struct YamlConfig {
                     throw EXCEPTION("using 'default' and 'definition' at same field.");
                 }
                 std::unordered_map<std::string, std::string> map;
-                for (auto kv: n) {
+                for (auto kv : n) {
                     map.emplace(kv.first.as<std::string>(), kv.second.as<std::string>());
                 }
                 definition = map;
@@ -180,7 +200,6 @@ struct YamlConfig {
     YamlConfig(const std::string& path_, const ArgConfig& arg_config_)
         : path(path_),
           arg_config(arg_config_) {
-
         std::string fullpath = arg_config.search_yaml_path(path);
         YAML::Node doc;
         try {
@@ -199,7 +218,7 @@ struct YamlConfig {
             } else {
                 name = path;
             }
-            for (auto& c: name) if (c == '/') c = '_';
+            for (auto& c : name) if (c == '/') c = '_';
         }
         target = doc["target"].as<std::string>();
         row = doc["row"].as<int>();
@@ -225,7 +244,7 @@ struct YamlConfig {
 
         // fields
         fields.clear();
-        for (auto node: doc["fields"]) {
+        for (auto node : doc["fields"]) {
             try {
                 fields.push_back(Field(node));
             } catch (std::exception& exc) {
@@ -240,7 +259,7 @@ struct YamlConfig {
         }
 
         int index = 0;
-        for (auto& field: fields) {
+        for (auto& field : fields) {
             field.index = index++;
         }
     }
@@ -248,7 +267,7 @@ struct YamlConfig {
     inline
     std::vector<Field::Relation> relations() {
         auto vec = std::vector<Field::Relation>();
-        for (auto& field: fields) {
+        for (auto& field : fields) {
             if (field.relation != boost::none) {
                 vec.push_back(field.relation.value());
             }
@@ -269,7 +288,7 @@ struct YamlConfig {
             throw EXCEPTION(path, ": not supported target pattern=", target_xls_path);
         }
         auto fulldir = utils::fs::joinpath(arg_config.xls_search_path, dir);
-        for (auto& entry: utils::fs::iterdir(fulldir)) {
+        for (auto& entry : utils::fs::iterdir(fulldir)) {
             if (!entry.isfile) continue;
             if (entry.name[0] == '~') continue;
             if (utils::fs::match(entry.name, pattern)) {
@@ -337,6 +356,6 @@ struct YamlConfig {
     }
 };
 
-}
+}  // namespace xlsxconverter
 
 #undef EXCEPTION

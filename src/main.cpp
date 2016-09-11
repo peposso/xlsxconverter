@@ -55,7 +55,6 @@ struct MainTask {
           yaml_configs(),
           relations(),
           relation_yamls() {
-
         if (arg_config.targets.empty() && !arg_config.yaml_search_paths.empty()) {
             for (auto& target : arg_config.search_yaml_target_all()) {
                 targets.push_back(target);
