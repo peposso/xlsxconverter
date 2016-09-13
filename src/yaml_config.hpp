@@ -295,6 +295,7 @@ struct YamlConfig {
                 paths.push_back(utils::fs::joinpath(arg_config.xls_search_path, dir, entry.name));
             }
         }
+        std::sort(paths.begin(), paths.end());
         return paths;
     }
 

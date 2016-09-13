@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 #include <thread>
+#include <algorithm>
+
 #include "utils.hpp"
 
 #ifndef BUILD_REVISION
@@ -140,9 +142,10 @@ struct ArgConfig {
         if (r.empty()) {
             throw EXCEPTION("no yaml files.");
         }
+        std::sort(r.begin(), r.end());
         return r;
     }
 };
 
-}
+}  // namespace xlsxconverter
 #undef EXCEPTION
