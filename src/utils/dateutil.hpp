@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <algorithm>
+#include <string>
 #include <vector>
 #include <sstream>
 #include <iomanip>
@@ -20,7 +21,7 @@ namespace dateutil {
 // SEE: http://alcor.concordia.ca/~gpkatch/gdate-algorithm.html
 inline int64_t make_days(int year, int month, int day) {
     // 0001-1-1 based days.
-    int m = (month + 9) % 12;  // mar=0, feb=11 
+    int m = (month + 9) % 12;  // mar=0, feb=11
     int y = year - m/10;  // if Jan/Feb, --year
     return y*365 + y / 4 - y / 100 + y / 400 + (m * 306 + 5) / 10 + (day - 1) - 306;
 }
@@ -73,13 +74,12 @@ time_t make_time(int year, int month, int day, int hour, int minute, int second)
 }
 
 
-struct strwalker
-{
+struct strwalker {
     const std::string& str;
     int pos;
     std::string m;
 
-    strwalker(const std::string& str, size_t pos_=0) : str(str), pos(pos_) {}
+    inline explicit strwalker(const std::string& str, size_t pos_ = 0) : str(str), pos(pos_) {}
 
     template<class F>
     bool match(const F& f, int width) {
@@ -105,7 +105,7 @@ struct strwalker
 
     struct anyfn {
         const std::string& pat;
-        inline anyfn(const std::string& pat) : pat(pat) {} 
+        inline explicit anyfn(const std::string& pat) : pat(pat) {}
         inline bool operator()(char& c) const { return pat.find(c) != std::string::npos; }
     };
     inline
@@ -113,13 +113,13 @@ struct strwalker
         return match(anyfn(pat), width);
     }
 
-    struct isfn { 
+    struct isfn {
         const char& pat;
-        inline isfn(const char& pat) : pat(pat) {} 
+        inline explicit isfn(const char& pat) : pat(pat) {}
         inline bool operator()(char& c) const { return c == pat; }
     };
     inline
-    bool is(char c, int width=1) {
+    bool is(char c, int width = 1) {
         return match(isfn(c), width);
     }
     inline
@@ -137,7 +137,7 @@ struct strwalker
 
 inline
 std::tuple<bool, int, int, int, size_t>
-parse_date(const std::string& str, size_t pos=0) {
+parse_date(const std::string& str, size_t pos = 0) {
     auto sw = strwalker(str, pos);
     auto failed = std::make_tuple(false, 0, 0, 0, (size_t)0);
     int year = 0;
@@ -160,7 +160,7 @@ parse_date(const std::string& str, size_t pos=0) {
 
 inline
 std::tuple<bool, int, int, int, int, size_t>
-parse_time(const std::string& str, size_t pos=0) {
+parse_time(const std::string& str, size_t pos = 0) {
     auto sw = strwalker(str, pos);
     auto failed = std::make_tuple(false, 0, 0, 0, 0, (size_t)0);
     int hour = 0, minute = 0, second = 0, millisecond = 0;
@@ -178,8 +178,10 @@ parse_time(const std::string& str, size_t pos=0) {
         }
     }
     sw.is(' ');
-    if (sw.is("am") || sw.is("AM")) {}
-    else if (sw.is("pm") || sw.is("PM")) { hour += 12; }
+    if (sw.is("am") || sw.is("AM")) {
+    } else if (sw.is("pm") || sw.is("PM")) {
+        hour += 12;
+    }
     if (sw.digits(1)) { return failed; }
     if (hour < 0 || 23 < hour) { return failed; }
     if (minute < 0 || 59 < minute) { return failed; }
@@ -191,7 +193,7 @@ const int ntz_hour = 0xFFFFFFFF;
 
 inline
 std::tuple<bool, int, int, size_t>
-parse_timezone(const std::string& str, size_t pos=0) {
+parse_timezone(const std::string& str, size_t pos = 0) {
     auto sw = strwalker(str, pos);
     auto failed = std::make_tuple(false, 0, 0, (size_t)0);
     int tz_hour = 0, tz_minute = 0;
@@ -228,8 +230,7 @@ parse_tuple(const std::string& str) {
     if (ok_date && sw.eos()) {
         // date-only
         date_only = true;
-    }
-    else if (ok_date) {
+    } else if (ok_date) {
         // expect date and time
         if (!sw.any(" T")) { return failed; }
     }
@@ -241,18 +242,22 @@ parse_tuple(const std::string& str) {
         std::tie(ok_tz, tz_hour, tz_minute, sw.pos) = parse_timezone(str, sw.pos);
         if (!ok_tz) tz_hour = ntz_hour;
     }
-    return std::make_tuple(true, year, month, day, hour, minute, second, millisecond, tz_hour, tz_minute, sw.pos);
+    return std::make_tuple(true, year, month, day,
+                           hour, minute, second, millisecond,
+                           tz_hour, tz_minute, sw.pos);
 }
 
 
 const time_t ntime = -0x80000000;
 
 inline
-int64_t parse64(const std::string& str, int default_tz_seconds=0) {
+int64_t parse64(const std::string& str, int default_tz_seconds = 0) {
     bool ok;
     int year, month, day, hour, minute, second, millisecond, tz_hour, tz_minute;
     size_t pos;
-    std::tie(ok, year, month, day, hour, minute, second, millisecond, tz_hour, tz_minute, pos) = parse_tuple(str);
+    std::tie(ok, year, month, day,
+             hour, minute, second, millisecond,
+             tz_hour, tz_minute, pos) = parse_tuple(str);
     if (!ok) {
         return ntime;
     }
@@ -262,12 +267,13 @@ int64_t parse64(const std::string& str, int default_tz_seconds=0) {
     return make_time64(year, month, day, hour, minute, second) - default_tz_seconds;
 }
 inline
-time_t parse(const std::string& str, int default_tz_seconds=0) {
+time_t parse(const std::string& str, int default_tz_seconds = 0) {
     return parse64(str, default_tz_seconds);
 }
 
 inline
-std::string isoformat64(int64_t time, int tz_seconds=0, char time_prefix='T', bool hide_tz=false) {
+std::string isoformat64(int64_t time, int tz_seconds = 0,
+                        char time_prefix = 'T', bool hide_tz = false) {
     time += tz_seconds;
     int year, month, day, hour, minute, second;
     std::tie(year, month, day, hour, minute, second) = make_tuple(time);
@@ -300,7 +306,8 @@ std::string isoformat64(int64_t time, int tz_seconds=0, char time_prefix='T', bo
     return ss.str();
 }
 inline
-std::string isoformat(time_t time, int tz_seconds=0, char time_prefix='T', bool hide_tz=false) {
+std::string isoformat(time_t time, int tz_seconds = 0,
+                      char time_prefix = 'T', bool hide_tz = false) {
     return isoformat64(time, tz_seconds, time_prefix, hide_tz);
 }
 
@@ -313,6 +320,6 @@ int local_tz_seconds() {
     return local_time - utc_time;
 }
 
-}
-}
-}
+}  // namespace dateutil
+}  // namespace utils
+}  // namespace xlsxconverter

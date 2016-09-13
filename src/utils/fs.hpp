@@ -22,13 +22,13 @@ namespace fs {
 
 #ifdef _WIN32
 inline std::string wtou8(WCHAR* ws) {
-    size_t size = ::WideCharToMultiByte(CP_UTF8, 0, ws, -1, (char*)nullptr, 0, nullptr, nullptr);
+    size_t size = ::WideCharToMultiByte(CP_UTF8, 0, ws, -1, nullptr, 0, nullptr, nullptr);
     std::string buf(size+1, '\0');
     ::WideCharToMultiByte(CP_UTF8, 0, ws, -1, &buf[0], size+1, nullptr, nullptr);
     return buf;
 }
 inline std::vector<WCHAR> u8tow(const std::string& str) {
-    size_t size = ::MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, (WCHAR*)nullptr, 0);
+    size_t size = ::MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, nullptr, 0);
     std::vector<WCHAR> buf;
     buf.resize(size + 1);
     ::MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, &buf[0], size + 1);
@@ -128,7 +128,7 @@ bool match(const std::string& haystack, const std::string& needle) {
     // simulate windows match pattern. ("*.*" match all.)
     if (needle.empty()) return true;
     if (needle == "*" || needle == "*.*") return true;
-    
+
     auto pats = split(needle, '*');
     if (pats.size() == 1) {
         // no *
@@ -154,8 +154,7 @@ bool match(const std::string& haystack, const std::string& needle) {
     }
     pats.pop_back();
 
-    //
-    for (auto pat: pats) {
+    for (auto pat : pats) {
         auto pos = haystack.find(pat, b);
         if (pos == std::string::npos) return false;
         b = pos + pat.size();
@@ -193,10 +192,8 @@ void writefile(const std::string& name, const std::string& content) {
     fo << content;
 }
 
-struct iterdir
-{
-    struct entry 
-    {
+struct iterdir {
+    struct entry  {
         std::string dirname;
         std::string name;
         bool isfile = false;
@@ -205,8 +202,7 @@ struct iterdir
         uint64_t size_ = 0;
     };
     #ifdef _WIN32
-    struct iterator : public std::iterator<std::input_iterator_tag, entry>
-    {
+    struct iterator : public std::iterator<std::input_iterator_tag, entry> {
         std::string dirname;
         std::string filter;
         HANDLE hfind = INVALID_HANDLE_VALUE;
@@ -214,9 +210,8 @@ struct iterdir
         entry current;
         int index;
         inline iterator(const std::string& dirname, const std::string& filter, int index = 0)
-            : dirname(dirname), filter(filter), current(), index(index),
-              hfind(INVALID_HANDLE_VALUE)
-        {
+                : dirname(dirname), filter(filter), current(), index(index),
+                  hfind(INVALID_HANDLE_VALUE) {
             current.dirname = dirname;
             if (index < 0) return;
             std::string glob_path;
@@ -228,13 +223,14 @@ struct iterdir
             hfind = ::FindFirstFile(glob_path.c_str(), &find_data);
         }
         inline ~iterator() {
-            if (hfind != INVALID_HANDLE_VALUE) ::FindClose(hfind);;
+            if (hfind != INVALID_HANDLE_VALUE) ::FindClose(hfind);
         }
         inline entry& operator*() {
             current.name = find_data.cFileName;
             current.isdir = find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY;
             current.isfile = !current.isdir;
-            current.size_ = ((uint64_t)find_data.nFileSizeHigh << 32) | (uint64_t)find_data.nFileSizeLow;
+            current.size_ = (((uint64_t)find_data.nFileSizeHigh << 32) |
+                             (uint64_t)find_data.nFileSizeLow);
             return current;
         }
         inline iterator& operator++() {
@@ -250,17 +246,15 @@ struct iterdir
         inline bool ends() { return index == -1; }
     };
     #else
-    struct iterator : public std::iterator<std::input_iterator_tag, entry>
-    {
+    struct iterator : public std::iterator<std::input_iterator_tag, entry> {
         std::string dirname;
         std::string filter;
         ::DIR* dirptr;
         entry current;
         int index;
         inline iterator(const std::string& dirname, const std::string& filter, int index = 0)
-            : dirname(dirname), filter(filter),
-              dirptr(nullptr), current(), index(index)
-        {
+                : dirname(dirname), filter(filter),
+                  dirptr(nullptr), current(), index(index) {
             current.dirname = dirname;
             operator++();
         }
@@ -298,20 +292,20 @@ struct iterdir
 
     std::string dirname;
     std::string filter;
-    inline iterdir(const std::string& dirname, const std::string& filter="")
+    inline explicit iterdir(const std::string& dirname, const std::string& filter = "")
         : dirname(dirname), filter(filter) {}
     inline iterator begin() { return iterator(dirname, filter); }
     inline iterator end() { return iterator(dirname, filter, -1); }
 };
 
-std::vector<std::string> walk(const std::string& dirname, const std::string& filter="") {
+std::vector<std::string> walk(const std::string& dirname, const std::string& filter = "") {
     std::vector<std::string> files;
-    for (auto& entry: iterdir(dirname)) {
+    for (auto& entry : iterdir(dirname)) {
         if (entry.isdir) {
             if (entry.name == ".") continue;
             if (entry.name == "..") continue;
             auto dir = joinpath(dirname, entry.name);
-            for (auto& child: walk(dir, filter)) {
+            for (auto& child : walk(dir, filter)) {
                 files.push_back(joinpath(entry.name, child));
             }
         } else if (entry.isfile && match(entry.name, filter)) {
@@ -321,6 +315,6 @@ std::vector<std::string> walk(const std::string& dirname, const std::string& fil
     return files;
 }
 
-}
-}
-}
+}  // namespace fs
+}  // namespace utils
+}  // namespace xlsxconverter

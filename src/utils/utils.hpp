@@ -4,17 +4,20 @@
 #include <sys/stat.h>
 #include <iostream>
 #include <sstream>
+#include <fstream>
+#include <string>
 #include <algorithm>
 #include <iterator>
 #include <vector>
+#include <tuple>
 #include <atomic>
 #include <mutex>
 #include <list>
 #include <unordered_map>
 #include <clocale>
-#include <fstream>
+#include <utility>
 
-#include <boost/optional.hpp>
+#include <boost/optional.hpp>  // NOLINT
 
 // macros
 #define XLSXCONVERTER_UTILS_DISABLE_ANY(...) \
@@ -31,7 +34,7 @@ namespace xlsxconverter {
 namespace utils {
 
 template<bool B, class T, class F>
-using conditional_t = typename std::conditional<B,T,F>::type;
+using conditional_t = typename std::conditional<B, T, F>::type;
 
 template<bool B>
 using enable_if_t = typename std::enable_if<B, std::nullptr_t>::type;
@@ -41,7 +44,9 @@ using tuple_element_t = typename std::tuple_element<I, T>::type;
 
 template<class T, class Tuple, size_t I>
 struct anytypeof_ {
-    static const bool value = std::is_same<T, tuple_element_t<I, Tuple>>::value ? true : anytypeof_<T, Tuple, I-1>::value;
+    static const bool value = std::is_same<T, tuple_element_t<I, Tuple>>::value ?
+                                true :
+                                anytypeof_<T, Tuple, I-1>::value;
 };
 template<class T, class Tuple>
 struct anytypeof_<T, Tuple, 0> {
@@ -65,8 +70,8 @@ std::vector<std::string> split(const std::string& str, char delim) {
 template<class...A>
 std::vector<std::string> split(const std::string& str, char delim, A...a) {
     std::vector<std::string> result;
-    for (auto& item: split(str, delim)) {
-        for (auto& child: split(item, a...)) {
+    for (auto& item : split(str, delim)) {
+        for (auto& child : split(item, a...)) {
             result.push_back(child);
         }
     }
@@ -93,15 +98,14 @@ std::string sscat(const A&...a) {
 
 struct exception : public std::runtime_error {
     template<class...A>
-    exception(A...a) : std::runtime_error(sscat(a...).c_str()) {}
+    explicit exception(A...a) : std::runtime_error(sscat(a...).c_str()) {}
 };
 
-struct spinlock
-{
+struct spinlock {
   std::atomic_flag state_;
   inline spinlock() : state_ ATOMIC_FLAG_INIT {}
   inline void lock() {
-    while (state_.test_and_set(std::memory_order_acquire));
+    while (state_.test_and_set(std::memory_order_acquire)) {}
   }
   inline void unlock() {
     state_.clear(std::memory_order_release);
@@ -128,10 +132,8 @@ void logerr(const A&...a) {
 }
 
 
-struct u8to32iter
-{
-    struct iterator : public std::iterator<std::input_iterator_tag, uint32_t>
-    {
+struct u8to32iter {
+    struct iterator : public std::iterator<std::input_iterator_tag, uint32_t> {
         size_t index = 0;
         std::string& str;
         uint32_t value;
@@ -199,14 +201,15 @@ struct u8to32iter
                 // U+10000 - U+10FFFF
                 return 4;
             } else {
-                throw exception("invalid utf8 charactor c=0x", std::hex, (int)c, std::dec);
+                throw exception("invalid utf8 charactor c=0x",
+                                std::hex, static_cast<int>(c), std::dec);
             }
         }
     };
 
     std::string str;
 
-    inline u8to32iter(const std::string& str) : str(str) {}
+    inline explicit u8to32iter(const std::string& str) : str(str) {}
     inline iterator begin() { return iterator(str, 0); }
     inline iterator end() { return iterator(str, str.size()); }
 };
@@ -224,9 +227,8 @@ std::tuple<bool, uint16_t, uint16_t> u32to16char(uint32_t c0) {
 }
 
 
-template<class T, class M=std::mutex>
-struct mutex_list
-{
+template<class T, class M = std::mutex>
+struct mutex_list {
     struct not_found : public std::exception {};
     M mutex;
     std::list<T> list;
@@ -263,14 +265,14 @@ struct mutex_list
     }
     template<class F> bool any(F f) {
         std::lock_guard<M> lock(mutex);
-        for (auto& e: list) {
+        for (auto& e : list) {
             if (f(e)) return true;
         }
         return false;
     }
     template<class F> T& get(F f) {
         std::lock_guard<M> lock(mutex);
-        for (auto& e: list) {
+        for (auto& e : list) {
             if (f(e)) return e;
         }
         throw not_found();
@@ -278,9 +280,8 @@ struct mutex_list
 };
 
 
-template<class K, class V, class M=std::mutex>
-struct mutex_map
-{
+template<class K, class V, class M = std::mutex>
+struct mutex_map {
     M mutex;
     std::unordered_map<K, V> map;
 
@@ -322,7 +323,7 @@ struct mutex_map
 };
 
 inline bool isdigits(const std::string& s) {
-    for (auto c: s) {
+    for (auto c : s) {
         if (c < '0' || '9' < c) return false;
     }
     return true;
@@ -337,6 +338,6 @@ inline bool isdecimal(const std::string& s) {
 }
 
 
-}
-}
+}  // namespace utils
+}  // namespace xlsxconverter
 

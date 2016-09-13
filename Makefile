@@ -110,7 +110,7 @@ cpplint:
 	-./external/cpplint.py --linelength=100 --filter=-build/c++11,-runtime/references --extensions=hpp,cpp src/**/*.hpp src/**.hpp src/**.cpp
 
 test: $(TARGET)
-	-./external/cpplint.py --linelength=100 --filter=-build/c++11 --extensions=hpp,cpp src/**/*.hpp src/**.hpp src/**.cpp
+	-./external/cpplint.py --linelength=100 --filter=-build/c++11,-runtime/references --extensions=hpp,cpp src/**/*.hpp src/**.hpp src/**.cpp
 	$(LDD) $(TARGET)
 	$(DEBUGGER) $(TEST)
 	python test/check_json.py test/sample.json
