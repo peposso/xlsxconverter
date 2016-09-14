@@ -1,25 +1,25 @@
+// Copyright (c) 2016 peposso All Rights Reserved.
+// Released under the MIT license
 #pragma once
-
+#include <string>
 #include "json.hpp"
 
-#define DISABLE_ANY XLSXCONVERTER_UTILS_DISABLE_ANY 
+#define DISABLE_ANY XLSXCONVERTER_UTILS_DISABLE_ANY
 #define ENABLE_ANY  XLSXCONVERTER_UTILS_ENABLE_ANY
 #define EXCEPTION XLSXCONVERTER_UTILS_EXCEPTION
 
 namespace xlsxconverter {
 namespace handlers {
 
-struct DjangoFixtureHandler : public JsonHandler
-{
+struct DjangoFixtureHandler : public JsonHandler {
     int pk_index = -1;
     int64_t pk_intvalue = -1;
     std::string pk_strvalue;
 
     inline
-    DjangoFixtureHandler(YamlConfig& config) 
-        : JsonHandler(config)
-    {
-        for (auto& field: config.fields) {
+    explicit DjangoFixtureHandler(YamlConfig& config)
+            : JsonHandler(config) {
+        for (auto& field : config.fields) {
             if (field.column == "ID" || field.column == "id" || field.column == "Id") {
                 pk_index = field.index;
             }
@@ -81,8 +81,8 @@ struct DjangoFixtureHandler : public JsonHandler
     }
 };
 
-}
-}
-#undef DISABLE_ANY 
+}  // namespace handlers
+}  // namespace xlsxconverter
+#undef DISABLE_ANY
 #undef ENABLE_ANY
 #undef EXCEPTION

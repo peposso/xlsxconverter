@@ -1,19 +1,19 @@
+// Copyright (c) 2016 peposso All Rights Reserved.
+// Released under the MIT license
 #pragma once
 
 #include "json.hpp"
 
-#define DISABLE_ANY XLSXCONVERTER_UTILS_DISABLE_ANY 
+#define DISABLE_ANY XLSXCONVERTER_UTILS_DISABLE_ANY
 #define ENABLE_ANY  XLSXCONVERTER_UTILS_ENABLE_ANY
 
 namespace xlsxconverter {
 namespace handlers {
 
-struct LuaHandler : public DjangoFixtureHandler
-{
+struct LuaHandler : public DjangoFixtureHandler {
     inline
-    LuaHandler(YamlConfig& config) 
-        : DjangoFixtureHandler(config)
-    {
+    explicit LuaHandler(YamlConfig& config)
+            : DjangoFixtureHandler(config) {
         name_quote = "";
         name_separator = space + "=";
     }
@@ -58,7 +58,7 @@ struct LuaHandler : public DjangoFixtureHandler
     }
 };
 
-}
-}
+}  // namespace handlers
+}  // namespace xlsxconverter
 #undef DISABLE_ANY
 #undef ENABLE_ANY

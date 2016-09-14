@@ -1,20 +1,22 @@
+// Copyright (c) 2016 peposso All Rights Reserved.
+// Released under the MIT license
 #pragma once
-
+#include <string>
 #include <unordered_map>
 #include <mutex>
+#include <utility>
 
 #include "yaml_config.hpp"
 #include "utils.hpp"
 
-#define DISABLE_ANY XLSXCONVERTER_UTILS_DISABLE_ANY 
+#define DISABLE_ANY XLSXCONVERTER_UTILS_DISABLE_ANY
 #define ENABLE_ANY  XLSXCONVERTER_UTILS_ENABLE_ANY
 #define EXCEPTION XLSXCONVERTER_UTILS_EXCEPTION
 
 namespace xlsxconverter {
 namespace handlers {
 
-struct RelationMap
-{
+struct RelationMap {
     inline static utils::mutex_map<std::string, RelationMap>& cache() {
         static utils::mutex_map<std::string, RelationMap> cache_;
         return cache_;
@@ -48,13 +50,12 @@ struct RelationMap
 
     inline
     RelationMap(YamlConfig::Field::Relation& relation, YamlConfig& config_)
-        : column(relation.column),
-          from(relation.from),
-          key(relation.key),
-          id(relation.id),
-          column_type_name(), key_type_name(),
-          config(config_)
-    {
+            : column(relation.column),
+              from(relation.from),
+              key(relation.key),
+              id(relation.id),
+              column_type_name(), key_type_name(),
+              config(config_) {
         for (int i = 0; i < config.fields.size(); ++i) {
             auto& field = config.fields[i];
             if (field.column == column) column_index = i;
@@ -69,9 +70,10 @@ struct RelationMap
         }
         column_type = column_field.type;
         column_type_name = column_field.type_name;
-        
+
         auto& key_field = config.fields[key_index];
-        if (key_field.type != YamlConfig::Field::Type::kInt && key_field.type != YamlConfig::Field::Type::kChar) {
+        if (key_field.type != YamlConfig::Field::Type::kInt &&
+            key_field.type != YamlConfig::Field::Type::kChar) {
             throw EXCEPTION("relation key type must be int or char.");
         }
         key_type = key_field.type;
@@ -89,7 +91,7 @@ struct RelationMap
         if (relmap == boost::none) {
             {
                 std::lock_guard<decltype(cache().mutex)> lock(cache().mutex);
-                for (const auto& kv: cache().map) {
+                for (const auto& kv : cache().map) {
                     utils::logerr("cache-key=", kv.first);
                 }
             }
@@ -212,8 +214,8 @@ struct RelationMap
     void save() {}
 };
 
-}
-}
+}  // namespace handlers
+}  // namespace xlsxconverter
 #undef EXCEPTION
 #undef DISABLE_ANY
 #undef ENABLE_ANY

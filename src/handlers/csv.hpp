@@ -1,3 +1,5 @@
+// Copyright (c) 2016 peposso All Rights Reserved.
+// Released under the MIT license
 #pragma once
 #include <type_traits>
 #include <string>
@@ -6,14 +8,13 @@
 #include "utils.hpp"
 #include "relation_map.hpp"
 
-#define DISABLE_ANY XLSXCONVERTER_UTILS_DISABLE_ANY 
+#define DISABLE_ANY XLSXCONVERTER_UTILS_DISABLE_ANY
 #define ENABLE_ANY  XLSXCONVERTER_UTILS_ENABLE_ANY
 
 namespace xlsxconverter {
 namespace handlers {
 
-struct CSVHandler
-{
+struct CSVHandler {
     YamlConfig& config;
     std::stringstream buffer;
 
@@ -24,9 +25,8 @@ struct CSVHandler
     const char endl = '\n';
 
     inline
-    CSVHandler(YamlConfig& config) 
-        : config(config)
-    {}
+    explicit CSVHandler(YamlConfig& config)
+        : config(config) {}
 
     inline
     void begin() {
@@ -51,7 +51,7 @@ struct CSVHandler
     void write_field_info_row() {
         if (config.handler.csv_field_type) {
             begin_row();
-            for (auto& f: config.fields) {
+            for (auto& f : config.fields) {
                 if (f.type == YamlConfig::Field::Type::kIsIgnored) continue;
                 std::string type_name;
                 if (f.type_alias.empty()) {
@@ -69,7 +69,7 @@ struct CSVHandler
         }
         if (config.handler.csv_field_column) {
             begin_row();
-            for (auto& f: config.fields) {
+            for (auto& f : config.fields) {
                 if (f.type == YamlConfig::Field::Type::kIsIgnored) continue;
                 field(f, f.column);
             }
@@ -108,7 +108,7 @@ struct CSVHandler
 
     template<class T, ENABLE_ANY(T, std::string)>
     void write_value(const T& value) {
-        for (auto c: value) {
+        for (auto c : value) {
             putchar_(c);
         }
     }
@@ -153,7 +153,7 @@ struct CSVHandler
 };
 
 
-}
-}
-#undef DISABLE_ANY 
+}  // namespace handlers
+}  // namespace xlsxconverter
+#undef DISABLE_ANY
 #undef ENABLE_ANY

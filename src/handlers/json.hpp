@@ -1,3 +1,5 @@
+// Copyright (c) 2016 peposso All Rights Reserved.
+// Released under the MIT license
 #pragma once
 #include <type_traits>
 #include <string>
@@ -5,14 +7,13 @@
 #include "yaml_config.hpp"
 #include "utils.hpp"
 
-#define DISABLE_ANY XLSXCONVERTER_UTILS_DISABLE_ANY 
+#define DISABLE_ANY XLSXCONVERTER_UTILS_DISABLE_ANY
 #define ENABLE_ANY  XLSXCONVERTER_UTILS_ENABLE_ANY
 
 namespace xlsxconverter {
 namespace handlers {
 
-struct JsonHandler
-{
+struct JsonHandler {
     YamlConfig& config;
     std::stringstream buffer;
 
@@ -29,11 +30,10 @@ struct JsonHandler
     std::string name_separator;
 
     inline
-    JsonHandler(YamlConfig& config) 
-        : config(config),
-          name_quote("\""),
-          name_separator(":")
-    {
+    explicit JsonHandler(YamlConfig& config)
+            : config(config),
+              name_quote("\""),
+              name_separator(":") {
         if (config.handler.indent < 0) {
             indent = space = endl = "";
         } else {
@@ -107,20 +107,23 @@ struct JsonHandler
     void write_value(const T& value) {
         buffer << "\"";
         if (config.handler.allow_non_ascii) {
-            for (auto c: value) {
+            for (auto c : value) {
                 putchar_(c);
             }
         } else {
-            for (auto uc: utils::u8to32iter(value)) {
+            for (auto uc : utils::u8to32iter(value)) {
                 if (uc >= 0x80) {
                     bool sarrogate;
                     uint16_t c1, c2;
                     std::tie(sarrogate, c1, c2) = utils::u32to16char(uc);
                     if (sarrogate) {
-                        buffer << "\\u" << std::setw(4) << std::setfill('0') << std::hex << c1 << std::dec;
-                        buffer << "\\u" << std::setw(4) << std::setfill('0') << std::hex << c2 << std::dec;
+                        buffer << "\\u" << std::setw(4) << std::setfill('0')
+                               << std::hex << c1 << std::dec;
+                        buffer << "\\u" << std::setw(4) << std::setfill('0')
+                               << std::hex << c2 << std::dec;
                     } else {
-                        buffer << "\\u" << std::setw(4) << std::setfill('0') << std::hex << c1 << std::dec;
+                        buffer << "\\u" << std::setw(4) << std::setfill('0')
+                               << std::hex << c1 << std::dec;
                     }
                 } else {
                     putchar_(uc);
@@ -171,7 +174,7 @@ struct JsonHandler
 };
 
 
-}
-}
-#undef DISABLE_ANY 
+}  // namespace handlers
+}  // namespace xlsxconverter
+#undef DISABLE_ANY
 #undef ENABLE_ANY
