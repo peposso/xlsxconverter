@@ -99,8 +99,9 @@ struct YamlConfig {
                     for (auto item : n) {
                         auto s = item.as<std::string>();
                         anyof_strset.insert(s);
-                        if (utils::isdecimal(s))
-                            anyof_intset.insert(std::stoi(s));
+                        if (utils::isdecimal(s)) {
+                            anyof_intset.insert(std::stoll(s));
+                        }
                     }
                 }
             }

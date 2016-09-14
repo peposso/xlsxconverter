@@ -132,7 +132,7 @@ struct strwalker {
         return true;
     }
     inline bool eos() { return pos >= str.size(); }
-    inline int as_int() { return std::stoi(m); }
+    inline int64_t as_int() { return std::stoll(m); }
 };
 
 inline

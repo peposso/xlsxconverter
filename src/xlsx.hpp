@@ -220,7 +220,7 @@ struct Cell {
             if (shared_string.get() == nullptr) {
                 throw Exception("invalid shared_string: nullptr");
             }
-            int i = std::stoi(v);
+            int64_t i = std::stoll(v);
             if (i < 0 || shared_string->size() <= i) {
                 throw Exception("invalid shared_string: invalid id=", i);
             }
@@ -269,7 +269,7 @@ struct Cell {
     inline
     int64_t as_int() {
         try {
-            return std::stoi(v);
+            return std::stoll(v);
         } catch (std::invalid_argument& exc) {
             return 0;
         }
