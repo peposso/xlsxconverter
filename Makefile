@@ -27,7 +27,7 @@ ifneq ($(DEBUG),)
 endif
 
 TEST = ./$(TARGET)$(EXE) --jobs full \
-		--xls_search_path test --yaml_search_path test --output_base_path test --timezone '+0900'
+		--xls_search_path tests --yaml_search_path tests --output_base_path tests --timezone '+0900'
 
 ifeq ($(shell uname -s),Darwin)
 	OS = mac
@@ -91,30 +91,30 @@ $(TARGET): $(LIBS) $(OBJS)
 
 test-duplicate:
 	# duplicate symbol test
-	$(CXX) $(CPPFLAGS) -c test/test_link.cpp -o test_link1.o
-	$(CXX) $(CPPFLAGS) -DMAIN -c test/test_link.cpp -o test_link2.o
+	$(CXX) $(CPPFLAGS) -c tests/test_link.cpp -o test_link1.o
+	$(CXX) $(CPPFLAGS) -DMAIN -c tests/test_link.cpp -o test_link2.o
 	$(CXX) test_link1.o test_link2.o $(LDFLAGS) -o test_link
 	$(RM) test_link
 
 test-util:
-	$(CXX) $(CPPFLAGS) -O0 -g3 test/test_fs.cpp -o test-util.exe
+	$(CXX) $(CPPFLAGS) -O0 -g3 tests/test_fs.cpp -o test-util.exe
 	$(DEBUGGER) ./test-util.exe
 	-rm test-util.exe
 
 test-xlsx:
-	$(CXX) $(CPPFLAGS) -O0 -g3 test/test_xlsx.cpp $(LDFLAGS) -o test_xlsx.exe
+	$(CXX) $(CPPFLAGS) -O0 -g3 tests/test_xlsx.cpp $(LDFLAGS) -o test_xlsx.exe
 	$(DEBUGGER) ./test_xlsx.exe
 	-rm test_xlsx.exe
 
 cpplint:
-	-./external/cpplint.py --linelength=100 --filter=-build/c++11,-runtime/references,-build/include_order --extensions=hpp,cpp src/**/*.hpp src/**.hpp src/**.cpp
+	./external/cpplint.py --linelength=100 --filter=-build/c++11,-runtime/references,-build/include_order --extensions=hpp,cpp src/**/*.hpp src/**.hpp src/**.cpp
 
 test: $(TARGET)
-	-./external/cpplint.py --linelength=100 --filter=-build/c++11,-runtime/references,-build/include_order --extensions=hpp,cpp src/**/*.hpp src/**.hpp src/**.cpp
+	./external/cpplint.py --linelength=100 --filter=-build/c++11,-runtime/references,-build/include_order --extensions=hpp,cpp src/**/*.hpp src/**.hpp src/**.cpp
 	$(LDD) $(TARGET)
 	$(DEBUGGER) $(TEST)
-	python test/check_json.py test/sample.json
-	python test/check_json.py test/dummy1fix.json
+	python tests/check_json.py tests/sample.json
+	python tests/check_json.py tests/dummy1fix.json
 	[ -e ../test.sh ] && ../test.sh || true
 .PHONY: test
 
