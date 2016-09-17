@@ -320,6 +320,26 @@ struct mutex_map {
         std::lock_guard<M> lock(mutex);
         return map.empty();
     }
+    inline V add(K k, V v) {
+        std::lock_guard<M> lock(mutex);
+        auto it = map.find(k);
+        if (it == map.end()) {
+            map.emplace(k, v);
+            return v;
+        }
+        it->second += v;
+        return it->second;
+    }
+    inline void erase(std::function<bool(K, V)> f) {
+        std::lock_guard<M> lock(mutex);
+        for (auto it = map.begin(); it != map.end();) {
+            if (f(it->first, it->second)) {
+                it = map.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
 };
 
 inline bool isdigits(const std::string& s) {

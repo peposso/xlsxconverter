@@ -2,9 +2,9 @@
 
 cd `dirname $0`/..
 
-ARGS1='--timezone +0900 --xls_search_path test --yaml_search_path test --json_base_path test'
-ARGS2='--timezone +0900 --xls_search_path test --yaml_search_path test --output_base_path test --quiet'
-TARGETS='dummy1.yaml dummy1fix.yaml dummy1csv.yaml dummy1lua.yaml'
+ARGS1='--timezone +0900 --xls_search_path tests --yaml_search_path tests --json_base_path tests'
+ARGS2='--timezone +0900 --xls_search_path tests --yaml_search_path tests --output_base_path tests --quiet'
+TARGETS=''
 
 
 # echo "--------------------------------"
@@ -14,8 +14,14 @@ TARGETS='dummy1.yaml dummy1fix.yaml dummy1csv.yaml dummy1lua.yaml'
 # done
 
 echo "--------------------------------"
-echo "c++ xlsxconverter... jobs 4"
-time for i in {1..30}; do
+echo "c++ xlsxconverter... --jobs 4 --no_cache"
+time for i in {1..100}; do
+    ./xlsxconverter --jobs 4 --no_cache ${ARGS2} ${TARGETS}
+done
+
+echo "--------------------------------"
+echo "c++ xlsxconverter... --jobs 4"
+time for i in {1..100}; do
     ./xlsxconverter --jobs 4 ${ARGS2} ${TARGETS}
 done
 
@@ -25,9 +31,11 @@ done
 #     ./xlsxconverter --jobs 2 ${ARGS2} ${TARGETS}
 # done
 
-# echo "--------------------------------"
-# echo "c++ xlsxconverter... jobs 1"
-# time for i in {1..20}; do
-#     ./xlsxconverter --jobs 1 ${ARGS2} ${TARGETS}
-# done
+echo "--------------------------------"
+echo "c++ xlsxconverter... jobs 1"
+time for i in {1..100}; do
+    ./xlsxconverter --jobs 1 ${ARGS2} ${TARGETS}
+done
+
+echo
 

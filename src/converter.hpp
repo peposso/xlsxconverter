@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 #include <unordered_set>
+#include <unordered_map>
+#include <memory>
 
 #include "xlsx.hpp"
 #include "utils.hpp"
@@ -39,12 +41,14 @@ struct Converter {
 
     YamlConfig& config;
     bool ignore_relation = false;
+    bool using_cache = false;
     std::vector<boost::optional<Validator>> validators;
     std::vector<boost::optional<handlers::RelationMap&>> relations;
 
     inline
-    explicit Converter(YamlConfig& config_, bool ignore_relation_ = false)
+    explicit Converter(YamlConfig& config_, bool using_cache_, bool ignore_relation_ = false)
             : config(config_),
+              using_cache(using_cache_),
               ignore_relation(ignore_relation_) {
         for (auto& field : config.fields) {
             if (field.validate == boost::none) {
@@ -58,6 +62,26 @@ struct Converter {
                 relations.push_back(handlers::RelationMap::find_cache(field.relation.value()));
             }
         }
+        if (config.arg_config.no_cache) {
+            using_cache = false;
+        }
+    }
+
+    static inline
+    std::shared_ptr<xlsx::Workbook> open_workbook(const std::string& path, bool using_cache) {
+        if (!using_cache) {
+            return std::make_shared<xlsx::Workbook>(path);
+        }
+        static std::unordered_map<std::string, std::shared_ptr<xlsx::Workbook>> cache;
+        static std::mutex m;
+        std::lock_guard<std::mutex> lock(m);
+        auto it = cache.find(path);
+        if (it != cache.end()) {
+            return it->second;
+        }
+        auto ptr = std::make_shared<xlsx::Workbook>(path);
+        cache.emplace(path, ptr);
+        return ptr;
     }
 
     template<class T>
@@ -70,8 +94,8 @@ struct Converter {
         for (int i = 0; i < paths.size(); ++i) {
             auto xls_path = paths[i];
             try {
-                auto book = xlsx::Workbook(xls_path);
-                auto& sheet = book.sheet_by_name(config.target_sheet_name);
+                auto book = open_workbook(xls_path, using_cache);
+                auto& sheet = book->sheet_by_name(config.target_sheet_name);
                 auto column_mapping = map_column(sheet, xls_path);
                 // process data
                 handle(handler, sheet, column_mapping);

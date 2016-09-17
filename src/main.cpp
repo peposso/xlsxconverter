@@ -38,6 +38,7 @@ struct MainTask {
     utils::mutex_list<YamlConfig> yaml_configs;
     utils::mutex_list<YamlConfig::Field::Relation> relations;
     utils::mutex_list<RelationYaml> relation_yamls;
+    utils::mutex_map<std::string, int> target_xls_counts;
 
     ArgConfig& arg_config;
     bool canceled;
@@ -49,12 +50,12 @@ struct MainTask {
     std::atomic_int phase3_running;
 
     MainTask(ArgConfig& arg_config, int jobs)
-        : canceled(false),
-          arg_config(arg_config),
-          targets(),
-          yaml_configs(),
-          relations(),
-          relation_yamls() {
+            : canceled(false),
+              arg_config(arg_config),
+              targets(),
+              yaml_configs(),
+              relations(),
+              relation_yamls() {
         if (arg_config.targets.empty() && !arg_config.yaml_search_paths.empty()) {
             for (auto& target : arg_config.search_yaml_target_all()) {
                 targets.push_back(target);
@@ -115,6 +116,10 @@ struct MainTask {
                         relations.push_back(std::move(rel));
                     }
                 }
+                auto paths = yaml_config.get_xls_paths();
+                for (auto path : paths) {
+                    target_xls_counts.add(path, 1);
+                }
                 yaml_configs.push_back(std::move(yaml_config));
             } catch (std::exception& exc) {
                 throw EXCEPTION(target, ": relation error: ", exc.what());
@@ -123,6 +128,7 @@ struct MainTask {
         --phase1_running;
         if (phase1_running.load() == 0) {
             if (relations.empty()) {
+                target_xls_counts.erase([](std::string, int c){return c == 1;});
                 phase3_done.unlock();
                 phase2_done.unlock();
             }
@@ -136,11 +142,9 @@ struct MainTask {
 
             try {
                 auto yaml_config = YamlConfig(relation->from, arg_config);
-                for (auto rel : yaml_config.relations()) {
-                    if (!relations.any(id_functor(rel.id)) &&
-                        !relation_yamls.any(id_functor(rel.id))) {
-                        relations.push_back(std::move(rel));
-                    }
+                auto paths = yaml_config.get_xls_paths();
+                for (auto path : paths) {
+                    target_xls_counts.add(path, 1);
                 }
                 relation_yamls.push_back(RelationYaml(relation->id, std::move(yaml_config),
                                                       std::move(relation.value())));
@@ -150,6 +154,7 @@ struct MainTask {
         }
         --phase2_running;
         if (phase2_running.load() == 0) {
+            target_xls_counts.erase([](std::string, int c) { return c == 1; });
             phase2_done.unlock();
         }
     }
@@ -165,7 +170,8 @@ struct MainTask {
                 continue;
             }
             auto relmap = handlers::RelationMap(rel, yaml_config);
-            Converter(yaml_config, true).run(relmap);
+            auto using_shared = target_xls_counts.has(yaml_config.get_xls_paths()[0]);
+            Converter(yaml_config, using_shared, true).run(relmap);
             handlers::RelationMap::store_cache(std::move(relmap));
         }
         --phase3_running;
@@ -185,7 +191,8 @@ struct MainTask {
                 }
                 continue;
             }
-            auto converter = Converter(yaml_config);
+            auto using_shared = target_xls_counts.has(yaml_config.get_xls_paths()[0]);
+            auto converter = Converter(yaml_config, using_shared);
             switch (yaml_config.handler.type) {
                 case YamlConfig::Handler::Type::kJson: {
                     auto handler = handlers::JsonHandler(yaml_config);

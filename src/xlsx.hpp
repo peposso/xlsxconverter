@@ -329,6 +329,7 @@ struct Sheet {
     int nrows_ = -1;
     int ncols_ = -1;
     std::vector<std::vector<Cell>> cells_;
+    std::unique_ptr<std::mutex> cell_lock;
 
     Cell ncell;
 
@@ -342,7 +343,8 @@ struct Sheet {
             : rid(rid_), name(name_),
               doc(std::move(doc_)),
               shared_string(shared_string_),
-              style_sheet(style_sheet_) {}
+              style_sheet(style_sheet_),
+              cell_lock(new std::mutex()) {}
 
     inline
     std::unordered_map<int, pugi::xml_node>& row_nodes() {
@@ -361,6 +363,10 @@ struct Sheet {
         if (nrows_ != -1) {
             return nrows_;
         }
+        std::lock_guard<std::mutex> lock(*cell_lock);
+        if (nrows_ != -1) {
+            return nrows_;
+        }
         int max = -1;
         for (auto& pair : row_nodes()) {
             int r = pair.first;
@@ -372,6 +378,10 @@ struct Sheet {
 
     inline
     int ncols() {
+        if (ncols_ != -1) {
+            return ncols_;
+        }
+        std::lock_guard<std::mutex> lock(*cell_lock);
         if (ncols_ != -1) {
             return ncols_;
         }
@@ -400,8 +410,12 @@ struct Sheet {
     inline
     Cell& cell(int rowx, int colx) {
         // row, col: 0-index
-        if (rowx < 0 || nrows() <= rowx) return ncell;
-        if (colx < 0 || ncols() <= colx) return ncell;
+        auto nrowx = nrows();
+        auto ncolx = ncols();
+        if (rowx < 0 || nrowx <= rowx) return ncell;
+        if (colx < 0 || ncolx <= colx) return ncell;
+
+        std::lock_guard<std::mutex> lock(*cell_lock);
         if (cells_.size() <= rowx) cells_.resize(rowx + 1);
         if (colx < cells_[rowx].size()) {
             return cells_[rowx][colx];
@@ -476,6 +490,8 @@ struct Workbook {
     std::unordered_map<std::string, Sheet> sheets;
     std::shared_ptr<std::vector<std::string>> shared_string;
     std::shared_ptr<StyleSheet> style_sheet;
+
+    std::mutex sheet_mutex;
 
     Workbook() = delete;
 
@@ -558,8 +574,7 @@ struct Workbook {
             shared_string->push_back(text);
         }
 
-        style_sheet = std::shared_ptr<StyleSheet>(
-                        new StyleSheet(load_doc("xl/styles.xml")));
+        style_sheet = std::make_shared<StyleSheet>(load_doc("xl/styles.xml"));
     }
 
     static inline
@@ -610,6 +625,7 @@ struct Workbook {
 
     inline
     Sheet& sheet(std::string rid) {
+        std::lock_guard<std::mutex> lock(sheet_mutex);
         if (sheets.count(rid) == 1) {
             return sheets[rid];
         }

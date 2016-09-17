@@ -22,6 +22,7 @@ struct ArgConfig {
     std::vector<std::string> yaml_search_paths;
     std::string output_base_path;
     bool quiet;
+    bool no_cache;
     int tz_seconds;
     int jobs;
     std::vector<std::string> targets;
@@ -30,12 +31,13 @@ struct ArgConfig {
 
     inline
     ArgConfig(int argc, char** argv)
-        : xls_search_path("."),
-          yaml_search_paths(),
-          output_base_path("."),
-          quiet(false),
-          tz_seconds(utils::dateutil::local_tz_seconds()),
-          jobs(std::thread::hardware_concurrency()) {
+            : xls_search_path("."),
+              yaml_search_paths(),
+              output_base_path("."),
+              quiet(false),
+              no_cache(false),
+              tz_seconds(utils::dateutil::local_tz_seconds()),
+              jobs(std::thread::hardware_concurrency()) {
         name = argc > 0 ? argv[0] : "";
         for (int i = 1; i < argc; ++i) {
             args.push_back(argv[i]);
@@ -72,6 +74,9 @@ struct ArgConfig {
                 } else if (arg == "--quiet") {
                     quiet = true;
                     continue;
+                } else if (arg == "--no_cache") {
+                    no_cache = true;
+                    continue;
                 } else if (arg == "--timezone" && !last) {
                     auto s = *++it;
                     bool ok; int h, m; size_t p;
@@ -99,6 +104,7 @@ struct ArgConfig {
         ss <<
             "xlsxconverter (rev."  << BUILD_REVISION << ")" << std::endl <<
             usage  << " [--quiet]" << std::endl <<
+            indent << " [--no_cache]" << std::endl <<
             indent << " [--jobs <'full'|'half'|'quarter'|int>]" << std::endl <<
             indent << " [--xls_search_path <path>]" << std::endl <<
             indent << " [--yaml_search_path <paths>]" << std::endl <<
