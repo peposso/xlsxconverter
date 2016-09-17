@@ -1,7 +1,7 @@
 // Copyright (c) 2016 peposso All Rights Reserved.
 // Released under the MIT license
 #pragma once
-#include <sys/stat.h>  // NOLINT
+#include <sys/stat.h>
 #include <tuple>
 #include <string>
 #include <vector>
@@ -14,8 +14,8 @@
 #include <exception>
 #include <utility>
 
-#include <ZipFile.h>  // NOLINT
-#include <pugixml.hpp>  // NOLINT
+#include <ZipFile.h>
+#include <pugixml.hpp>
 
 namespace xlsx {
 
@@ -339,11 +339,10 @@ struct Sheet {
           std::unique_ptr<pugi::xml_document> doc_,
           std::shared_ptr<std::vector<std::string>> shared_string_,
           std::shared_ptr<StyleSheet> style_sheet_)
-        : rid(rid_), name(name_),
-          doc(std::move(doc_)),
-          shared_string(shared_string_),
-          style_sheet(style_sheet_)
-    {}
+            : rid(rid_), name(name_),
+              doc(std::move(doc_)),
+              shared_string(shared_string_),
+              style_sheet(style_sheet_) {}
 
     inline
     std::unordered_map<int, pugi::xml_node>& row_nodes() {
@@ -529,8 +528,16 @@ struct Workbook {
                 std::string target = rel.attribute("Target").as_string();
                 auto ext = target.substr(target.size()-4);
                 if (ext != ".xml") continue;
-                if (target.substr(0, 3) != "xl/") {
+                std::string type = rel.attribute("Type").as_string();
+                if (!type.empty() && !is_reltype_worksheet(type)) continue;
+                auto head = target.substr(0, 3);
+                if (head == "../") {
+                    target = "xl/" + target.substr(3);
+                } else if (head != "xl/") {
                     target = "xl/" + target;
+                }
+                if (rels.count(rid) != 0) {
+                    throw Exception("duplicate r:id=", rid, " entry=", entry_names[i]);
                 }
                 rels[rid] = target;
             }
@@ -553,6 +560,15 @@ struct Workbook {
 
         style_sheet = std::shared_ptr<StyleSheet>(
                         new StyleSheet(load_doc("xl/styles.xml")));
+    }
+
+    static inline
+    bool is_reltype_worksheet(const std::string& type) {
+        static const std::string rpat = "/relationships/";
+        auto p = type.find(rpat);
+        if (p == std::string::npos) return false;
+        auto tail = type.substr(p + rpat.size());
+        return tail == "worksheet";
     }
 
     inline
