@@ -13,6 +13,7 @@
 #include <memory>
 #include <exception>
 #include <utility>
+#include <random>
 
 #include <ZipFile.h>
 #include <pugixml.hpp>
@@ -320,16 +321,18 @@ struct Cell {
 struct Sheet {
     std::string rid;
     std::string name;
+    std::string demension;
     std::unique_ptr<pugi::xml_document> doc;
     std::shared_ptr<std::vector<std::string>> shared_string;
     std::shared_ptr<StyleSheet> style_sheet;
 
     // cached
-    std::unordered_map<int, pugi::xml_node> row_nodes_;
+    std::vector<pugi::xml_node> row_nodes_;
     int nrows_ = -1;
     int ncols_ = -1;
     std::vector<std::vector<Cell>> cells_;
-    std::unique_ptr<std::mutex> cell_lock;
+    std::unique_ptr<std::vector<std::mutex>> row_locks;
+    bool preloaded;
 
     Cell ncell;
 
@@ -344,59 +347,42 @@ struct Sheet {
               doc(std::move(doc_)),
               shared_string(shared_string_),
               style_sheet(style_sheet_),
-              cell_lock(new std::mutex()) {}
-
-    inline
-    std::unordered_map<int, pugi::xml_node>& row_nodes() {
-        if (!row_nodes_.empty()) {
-            return row_nodes_;
+              preloaded(false) {
+        auto sheet = doc->child("worksheet");
+        auto dimension = sheet.child("dimension");
+        std::string dimension_ref = dimension.attribute("ref").as_string();
+        auto p = dimension_ref.find(':');
+        if (p == std::string::npos) {
+            throw Exception("invalid demension: ", dimension_ref);
         }
-        for (auto& row : doc->child("worksheet").child("sheetData").children("row")) {
+        int maxx, maxy;
+        std::tie(maxy, maxx) = parse_cellname(dimension_ref.substr(p+1));
+        nrows_ = maxy + 1;
+        ncols_ = maxx + 1;
+        // avoid realloc. (bad access)
+        cells_.resize(nrows_);
+        for (int j = 0; j < nrows_; ++j) {
+            cells_[j].reserve(ncols_);
+        }
+        row_locks = std::unique_ptr<std::vector<std::mutex>>(new std::vector<std::mutex>(nrows_));
+        // for random access xmldoc;
+        row_nodes_.resize(nrows_);
+        for (auto& row : sheet.child("sheetData").children("row")) {
             int r = row.attribute("r").as_int() - 1;
+            if (r < 0 || nrows_ <= r) {
+                throw Exception("invalid row: ", r);
+            }
             row_nodes_[r] = row;
         }
-        return row_nodes_;
     }
 
     inline
     int nrows() {
-        if (nrows_ != -1) {
-            return nrows_;
-        }
-        std::lock_guard<std::mutex> lock(*cell_lock);
-        if (nrows_ != -1) {
-            return nrows_;
-        }
-        int max = -1;
-        for (auto& pair : row_nodes()) {
-            int r = pair.first;
-            if (r > max) max = r;
-        }
-        nrows_ = max + 1;
         return nrows_;
     }
 
     inline
     int ncols() {
-        if (ncols_ != -1) {
-            return ncols_;
-        }
-        std::lock_guard<std::mutex> lock(*cell_lock);
-        if (ncols_ != -1) {
-            return ncols_;
-        }
-        int max = -1;
-        for (auto& pair : row_nodes()) {
-            int colmax = -1;
-            for (auto& c : pair.second.children("c")) {
-                std::string r = c.attribute("r").as_string();
-                int colx, rowx_;
-                std::tie(rowx_, colx) = parse_cellname(r);
-                if (colx > colmax) colmax = colx;
-            }
-            if (colmax > max) max = colmax;
-        }
-        ncols_ = max + 1;
         return ncols_;
     }
 
@@ -415,16 +401,17 @@ struct Sheet {
         if (rowx < 0 || nrowx <= rowx) return ncell;
         if (colx < 0 || ncolx <= colx) return ncell;
 
-        std::lock_guard<std::mutex> lock(*cell_lock);
-        if (cells_.size() <= rowx) cells_.resize(rowx + 1);
+        std::lock_guard<std::mutex> lock((*row_locks)[rowx]);
         if (colx < cells_[rowx].size()) {
             return cells_[rowx][colx];
         }
+        // std::cerr << "ncols=" << ncolx << " nrows=" << nrowx << std::endl;
 
         auto& row_cells = cells_[rowx];
         row_cells.clear();
+        row_cells.reserve(ncolx);
         int i = 0;
-        for (auto& c : row_nodes()[rowx].children("c")) {
+        for (auto& c : row_nodes_[rowx].children("c")) {
             std::string r = c.attribute("r").as_string();
             int colx, rowx_;
             std::tie(rowx_, colx) = parse_cellname(r);
@@ -632,8 +619,10 @@ struct Workbook {
         auto entry_name = rels[rid];
         auto sheet_name = sheet_name_by_rid[rid];
         auto doc = load_doc(entry_name);
-        auto sheet = Sheet(rid, sheet_name, std::move(doc), shared_string, style_sheet);
-        sheets.insert(std::make_pair(rid, std::move(sheet)));
+        // auto sheet = Sheet(rid, sheet_name, std::move(doc), shared_string, style_sheet);
+        sheets.emplace(std::piecewise_construct, std::make_tuple(rid),
+                       std::make_tuple(rid, sheet_name, std::move(doc),
+                                       shared_string, style_sheet));
         return sheets[rid];
     }
 

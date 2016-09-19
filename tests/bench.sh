@@ -1,5 +1,5 @@
 #!/bin/sh
-
+set -e
 cd `dirname $0`/..
 
 ARGS1='--timezone +0900 --xls_search_path tests --yaml_search_path tests --json_base_path tests'
@@ -22,6 +22,7 @@ done
 echo "--------------------------------"
 echo "c++ xlsxconverter... --jobs 4"
 time for i in {1..100}; do
+    # lldb -k --batch -o "run" -o "thread backtrace all" -o "quit" -- ./xlsxconverter --jobs 4 ${ARGS2} ${TARGETS}
     ./xlsxconverter --jobs 4 ${ARGS2} ${TARGETS}
 done
 
