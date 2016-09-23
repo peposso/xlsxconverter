@@ -72,16 +72,8 @@ struct Converter {
         if (!using_cache) {
             return std::make_shared<xlsx::Workbook>(path);
         }
-        static std::unordered_map<std::string, std::shared_ptr<xlsx::Workbook>> cache;
-        static std::mutex m;
-        std::lock_guard<std::mutex> lock(m);
-        auto it = cache.find(path);
-        if (it != cache.end()) {
-            return it->second;
-        }
-        auto ptr = std::make_shared<xlsx::Workbook>(path);
-        cache.emplace(path, ptr);
-        return ptr;
+        static utils::shared_cache<std::string, xlsx::Workbook> cache;
+        return cache.get_or_emplace(path, path);
     }
 
     template<class T>
@@ -100,7 +92,10 @@ struct Converter {
                 // process data
                 handle(handler, sheet, column_mapping);
             } catch (utils::exception& exc) {
-                throw EXCEPTION(config.path, ": ", xls_path, ": ", exc.what());
+                throw EXCEPTION("yaml=", config.path,
+                                ": xls=", xls_path,
+                                ": sheet=", config.target_sheet_name,
+                                ": ", exc.what());
             }
         }
         handler.end();

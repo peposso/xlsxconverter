@@ -102,14 +102,15 @@ struct exception : public std::runtime_error {
 };
 
 struct spinlock {
-  std::atomic_flag state_;
-  inline spinlock() : state_ ATOMIC_FLAG_INIT {}
-  inline void lock() {
-    while (state_.test_and_set(std::memory_order_acquire)) {}
-  }
-  inline void unlock() {
-    state_.clear(std::memory_order_release);
-  }
+    enum State {Locked, UnLocked};
+    std::atomic<State> state_;
+    inline spinlock() : state_(UnLocked) {}
+    inline void lock() {
+        while (state_.exchange(Locked, std::memory_order_acquire) == Locked) {}
+    }
+    inline void unlock() {
+        state_.store(UnLocked, std::memory_order_release);
+    }
 };
 
 inline spinlock& logging_lock() {
@@ -339,6 +340,47 @@ struct mutex_map {
                 ++it;
             }
         }
+    }
+};
+
+template<class K, class V>
+struct shared_cache {
+    // using M = utils::spinlock;
+    using M = std::mutex;
+    struct Value {
+        std::shared_ptr<V> v;
+        std::unique_ptr<M> mutex;
+        inline Value()
+            :v(nullptr), mutex(std::unique_ptr<M>(new M)) {}
+    };
+    M mutex;
+    std::unordered_map<K, Value> map;
+
+    template<class...A>
+    std::shared_ptr<V> get_or_emplace(K k, A...a) {
+        Value* value;
+        {
+            std::lock_guard<M> lock(mutex);
+            auto it = map.find(k);
+            if (it != map.end()) {
+                if (it->second.v.get() == nullptr) {
+                    value = &it->second;
+                } else {
+                    return it->second.v;
+                }
+            } else {
+                auto em = map.emplace(std::piecewise_construct,
+                                      std::make_tuple(k),
+                                      std::make_tuple());
+                value = &em.first->second;
+            }
+        }
+        std::lock_guard<M> value_lock(*value->mutex);
+        if (value->v.get() != nullptr) {
+            return value->v;
+        }
+        value->v = std::make_shared<V>(a...);
+        return value->v;
     }
 };
 

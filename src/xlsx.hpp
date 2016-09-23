@@ -602,10 +602,11 @@ struct Workbook {
 
     inline
     std::unique_ptr<pugi::xml_document> load_doc(const std::string& name) {
-        if (entry_indexes.count(name) == 0) {
+        auto it = entry_indexes.find(name);
+        if (it == entry_indexes.end()) {
             throw Exception("entry=", name, ": not found.");
         }
-        return load_doc(entry_indexes[name]);
+        return load_doc(it->second);
     }
 
     inline int nsheets() { return nsheets_; }
@@ -613,17 +614,18 @@ struct Workbook {
     inline
     Sheet& sheet(std::string rid) {
         std::lock_guard<std::mutex> lock(sheet_mutex);
-        if (sheets.count(rid) == 1) {
-            return sheets[rid];
+        auto it = sheets.find(rid);
+        if (it != sheets.end()) {
+            return it->second;
         }
         auto entry_name = rels[rid];
         auto sheet_name = sheet_name_by_rid[rid];
         auto doc = load_doc(entry_name);
         // auto sheet = Sheet(rid, sheet_name, std::move(doc), shared_string, style_sheet);
-        sheets.emplace(std::piecewise_construct, std::make_tuple(rid),
-                       std::make_tuple(rid, sheet_name, std::move(doc),
-                                       shared_string, style_sheet));
-        return sheets[rid];
+        auto em = sheets.emplace(std::piecewise_construct, std::make_tuple(rid),
+                                 std::make_tuple(rid, sheet_name, std::move(doc),
+                                                 shared_string, style_sheet));
+        return em.first->second;
     }
 
     inline

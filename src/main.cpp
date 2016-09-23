@@ -193,37 +193,21 @@ struct MainTask {
             }
             auto using_shared = target_xls_counts.has(yaml_config.get_xls_paths()[0]);
             auto converter = Converter(yaml_config, using_shared);
-            switch (yaml_config.handler.type) {
-                case YamlConfig::Handler::Type::kJson: {
-                    auto handler = handlers::JsonHandler(yaml_config);
-                    converter.run(handler);
-                    if (!canceled) handler.save();
-                    break;
-                }
-                case YamlConfig::Handler::Type::kDjangoFixture: {
-                    auto handler = handlers::DjangoFixtureHandler(yaml_config);
-                    converter.run(handler);
-                    if (!canceled) handler.save();
-                    break;
-                }
-                case YamlConfig::Handler::Type::kCSV: {
-                    auto handler = handlers::CSVHandler(yaml_config);
-                    converter.run(handler);
-                    if (!canceled) handler.save();
-                    break;
-                }
-                case YamlConfig::Handler::Type::kLua: {
-                    auto handler = handlers::LuaHandler(yaml_config);
-                    converter.run(handler);
-                    if (!canceled) handler.save();
-                    break;
-                }
-                case YamlConfig::Handler::Type::kTemplate: {
-                    auto handler = handlers::TemplateHandler(yaml_config);
-                    converter.run(handler);
-                    if (!canceled) handler.save();
-                    break;
-                }
+            using HT = YamlConfig::Handler::Type;
+            switch (yaml_config.handler.type) {;
+                #define CASE(i, T) \
+                    case i: { \
+                        auto handler = T(yaml_config); \
+                        converter.run(handler); \
+                        if (!canceled) handler.save(); \
+                        break; \
+                    }
+                CASE(HT::kJson, handlers::JsonHandler);
+                CASE(HT::kDjangoFixture, handlers::DjangoFixtureHandler);
+                CASE(HT::kCSV, handlers::CSVHandler);
+                CASE(HT::kLua, handlers::LuaHandler);
+                CASE(HT::kTemplate, handlers::TemplateHandler);
+                #undef CASE
                 default: {
                     throw EXCEPTION(yaml_config.path,
                                     ": handler.type=", yaml_config.handler.type_name,
