@@ -93,9 +93,18 @@ struct JsonHandler {
         buffer << name_quote << name << name_quote << name_separator << space;
     }
 
-    template<class T, ENABLE_ANY(T, int64_t, double)>
-    void write_value(const T& value, ...) {
+    template<class T, ENABLE_ANY(T, int64_t)>
+    void write_value(const T& value) {
         buffer << value;
+    }
+
+    template<class T, ENABLE_ANY(T, double)>
+    void write_value(const T& value) {
+        auto s = std::to_string(value);
+        if (s.find('.') == std::string::npos) {
+            s.append(".0");
+        }
+        buffer << s;
     }
 
     template<class T, ENABLE_ANY(T, bool)>

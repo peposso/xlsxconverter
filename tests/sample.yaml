@@ -67,3 +67,7 @@ fields:
   optional: true
   type: int
   default: 1
+
+- column: float_id
+  name: "連番"
+  type: float
