@@ -557,7 +557,17 @@ struct Workbook {
 
         auto shared_string_doc = load_doc("xl/sharedStrings.xml");
         for (auto si : shared_string_doc->child("sst").children("si")) {
-            auto text = si.child("t").text().as_string();
+            std::string text;
+            for (auto child : si.children()) {
+                std::string name = child.name();
+                if (name == "t") {
+                    text.append(child.text().as_string());
+                } else if (name == "r") {
+                    for (auto node : child.children("t")) {
+                        text.append(node.text().as_string());
+                    }
+                }
+            }
             shared_string->push_back(text);
         }
 
