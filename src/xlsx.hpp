@@ -49,6 +49,7 @@ struct StyleSheet {
     std::unordered_map<int, std::string> format_codes;
 
     std::unordered_map<int, bool> is_date_table_;
+    std::mutex mutex_;
     /*
     numFmts.
     # "std" == "standard for US English locale"
@@ -130,6 +131,7 @@ struct StyleSheet {
     inline
     bool is_date_format(int xf_index) {
         // SEE: https://github.com/python-excel/xlrd/blob/master/xlrd/formatting.py
+        std::lock_guard<std::mutex> lock(mutex_);
         auto it = is_date_table_.find(xf_index);
         if (it != is_date_table_.end()) return it->second;
 
