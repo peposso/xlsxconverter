@@ -76,7 +76,7 @@ struct YamlConfig {
     struct Field {
         enum Type {
             kError, kInt, kFloat, kBool, kChar, kDateTime, kUnixTime,
-            kForeignKey, kIsIgnored,
+            kAny, kForeignKey, kIsIgnored,
         };
         struct Validate {
             bool unique = false;
@@ -140,6 +140,7 @@ struct YamlConfig {
                 {"char", Type::kChar},
                 {"datetime", Type::kDateTime},
                 {"unixtime", Type::kUnixTime},
+                {"any", Type::kAny},
                 {"foreignkey", Type::kForeignKey},
                 {"isignored", Type::kIsIgnored},
             };

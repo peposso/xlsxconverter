@@ -163,6 +163,9 @@ struct Converter {
                     is_empty_line = false;
                 }
                 if (field.type == YamlConfig::Field::Type::kIsIgnored) {
+                    if (cell.type == CT::kBool) {
+                        is_ignored = cell.as_bool();
+                    }
                     if (cell.type == CT::kInt || cell.type == CT::kDouble) {
                         is_ignored = cell.as_int() != 0;
                     }
@@ -267,6 +270,10 @@ struct Converter {
                     handler.field(field, v);
                     return;
                 }
+                if (cell.type == CT::kBool) {
+                    handler.field(field, cell.as_bool());
+                    return;
+                }
                 if (cell.type == CT::kEmpty && field.using_default) {
                     handle_cell_default(handler, field);
                     return;
@@ -328,6 +335,56 @@ struct Converter {
                     return;
                 }
                 throw EXCEPTION("type error. expect datetime.");
+            }
+            case FT::kAny: {
+                if (field.definition != boost::none) {
+                    throw EXCEPTION("not support any definition.");
+                    return;
+                }
+                if (cell.type == CT::kDateTime) {
+                    auto tz = config.arg_config.tz_seconds;
+                    auto time = cell.as_time64(tz);
+                    handler.field(field, utils::dateutil::isoformat64(time, tz));
+                    return;
+                }
+                if (cell.type == CT::kEmpty) {
+                    if (field.using_default) {
+                        handle_cell_default(handler, field);
+                        return;
+                    }
+                    std::string s = "";
+                    handler.field(field, s);
+                    return;
+                }
+                if (cell.type == CT::kBool) {
+                    handler.field(field, cell.as_bool());
+                    return;
+                }
+                if (cell.type == CT::kString) {
+                    auto s = cell.as_str();
+                    if (s == "TRUE" || s == "True" || s == "true") {
+                        handler.field(field, true);
+                        return;
+                    } else if (s == "FALSE" || s == "False" || s == "false") {
+                        handler.field(field, false);
+                        return;
+                    } else if (s == "NULL" || s == "Null" || s == "null" ||
+                               s == "NONE" || s == "None" || s == "none") {
+                        handler.field(field, nullptr);
+                        return;
+                    }
+                    handler.field(field, s);
+                    return;
+                }
+                if (cell.type == CT::kInt) {
+                    handler.field(field, cell.as_int());
+                    return;
+                }
+                if (cell.type == CT::kDouble) {
+                    handler.field(field, cell.as_double());
+                    return;
+                }
+                throw EXCEPTION("unknown field.type.");
             }
             case FT::kUnixTime: {
                 if (field.definition != boost::none) {

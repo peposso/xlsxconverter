@@ -197,7 +197,7 @@ struct StyleSheet {
 
 struct Cell {
     enum Type {
-        kEmpty, kString, kInt, kDouble, kDateTime
+        kEmpty, kString, kInt, kDouble, kDateTime, kBool,
     };
 
     std::string v;
@@ -228,6 +228,8 @@ struct Cell {
                 throw Exception("invalid shared_string: invalid id=", i);
             }
             v = shared_string->at(i);
+        } else if (t == "b") {
+            type = Type::kBool;
         } else {
             if (s > 0 && style_sheet->is_date_format(s)) {
                 type = Type::kDateTime;
@@ -241,13 +243,14 @@ struct Cell {
 
     inline
     std::string type_name() {
-        // for debug.
+        // for error.
         switch (type) {
             case (Type::kEmpty): return "empty";
             case (Type::kString): return "string";
             case (Type::kInt): return "int";
             case (Type::kDouble): return "double";
             case (Type::kDateTime): return "datetime";
+            case (Type::kBool): return "bool";
         }
         return "error";
     }
@@ -276,6 +279,11 @@ struct Cell {
         } catch (std::invalid_argument& exc) {
             return 0;
         }
+    }
+
+    inline
+    bool as_bool() {
+        return v != "0" && !v.empty();
     }
 
     inline

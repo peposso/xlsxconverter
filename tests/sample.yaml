@@ -71,3 +71,7 @@ fields:
 - column: float_id
   name: "連番"
   type: float
+
+- column: excel_type_value
+  name: "エクセル型"
+  type: any

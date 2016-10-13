@@ -182,7 +182,6 @@ struct JsonHandler {
     }
 };
 
-
 }  // namespace handlers
 }  // namespace xlsxconverter
 #undef DISABLE_ANY
