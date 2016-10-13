@@ -233,12 +233,45 @@ struct Cell {
         } else {
             if (s > 0 && style_sheet->is_date_format(s)) {
                 type = Type::kDateTime;
-            } else if (v.find('.') != std::string::npos) {
+            } else if (is_float_string(v)) {
                 type = Type::kDouble;
             } else {
                 type = Type::kInt;
             }
         }
+    }
+
+    inline
+    bool is_float_string(std::string v) {
+        if (v.empty()) return false;
+        auto it = v.begin();
+        if (*it == '+' || *it == '-') ++it;
+        bool digit = false;
+        bool dot = false;
+        for (;it != v.end(); ++it) {
+            if ('0' <= *it && *it <= '9') {
+                digit = true;
+            } else if (*it == '.') {
+                if (dot) return false;
+                dot = true;
+            } else if (*it == 'E' || *it == 'e') {
+                if (!digit) return false;
+                ++it;
+                if (*it == '+' || *it == '-') ++it;
+                bool expdigit = false;
+                for (;it != v.end(); ++it) {
+                    if ('0' <= *it && *it <= '9') {
+                        expdigit = true;
+                    } else {
+                        return false;
+                    }
+                }
+                return expdigit;
+            } else {
+                return false;
+            }
+        }
+        return dot;
     }
 
     inline
