@@ -22,7 +22,6 @@ endif
 
 ifneq ($(DEBUG),)
 	CPPFLAGS += -O0 -g3 -fstack-protector-all -DDEBUG=$(DEBUG)
-	# CPPFLAGS:=-g -fsanitize=thread -fstack-protector-all -fno-omit-frame-pointer $(CPPFLAGS) -DDEBUG=$(DEBUG)
 	LDFLAGS += -fstack-protector-all
 endif
 
