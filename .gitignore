@@ -29,6 +29,7 @@ Obj/**
 *.suo
 *.sdf
 *.opensdf
+/.vscode
 
 # target
 /xlsxconverter
