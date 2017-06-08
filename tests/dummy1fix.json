@@ -130,5 +130,17 @@
             "preference_id": 5
         },
         "pk": 11
+    },
+    {
+        "fields": {
+            "birthday": "1936-12-11T00:00:00+0900",
+            "country_code": "JP",
+            "current_preference_id": 18,
+            "family_name": "\u3042\u3044,,,\u3046\n\u3048\u304a",
+            "first_name": "\u304b\u304d\"\u304f\"\u3051\n\u3053",
+            "id": 12,
+            "preference_id": 5
+        },
+        "pk": 12
     }
 ]

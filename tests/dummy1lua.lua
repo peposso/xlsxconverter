@@ -130,5 +130,17 @@ return {
             preference_id = 5
         },
         pk = 11
+    },
+    {
+        fields = {
+            birthday = "1936-12-11T00:00:00+0900",
+            country_code = "JP",
+            current_preference_id = 18,
+            family_name = "あい,,,う\nえお",
+            first_name = "かき\"く\"け\nこ",
+            id = 12,
+            preference_id = 5
+        },
+        pk = 12
     }
 }

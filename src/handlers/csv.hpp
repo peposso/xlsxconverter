@@ -108,8 +108,15 @@ struct CSVHandler {
 
     template<class T, ENABLE_ANY(T, std::string)>
     void write_value(const T& value) {
-        for (auto c : value) {
-            putchar_(c);
+        if (value.find(',') != std::string::npos || value.find('\n') != std::string::npos) {
+            buffer << '"';
+            for (auto c : value) {
+                if (c == '"') buffer << '"';
+                buffer << c;
+            }
+            buffer << '"';
+        } else {
+            buffer << value;
         }
     }
 
