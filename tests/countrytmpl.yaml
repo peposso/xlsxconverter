@@ -4,7 +4,7 @@ limit: 10
 handler:
   type: template
   path: countrytmpl.py
-  source: test/template.py
+  source: tests/template.py
   context:
     class_name: Country
     description: Countryの定数です

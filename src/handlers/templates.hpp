@@ -121,7 +121,7 @@ struct TemplateHandler {
               records(Data::Type::List),
               current_record_fields(Data::Type::List),
               current_record() {
-        #define LAMBDA() [](const Data* data, Mustache::Context* ctx) -> const Data*
+        #define LAMBDA() [](const Data* data, const std::string& arg, Mustache::Context* ctx) -> const Data*
         template_.registerFilter("upper", LAMBDA() {
             if (!data->isString()) return data;
             return ctx->addPool(Data(upper_(data->stringValue())));
@@ -141,6 +141,14 @@ struct TemplateHandler {
         template_.registerFilter("lower_camel", LAMBDA() {
             if (!data->isString()) return data;
             return ctx->addPool(Data(lower_camel_(data->stringValue())));
+        });
+        template_.registerFilter("eq:", LAMBDA() {
+            if (!data->isString()) return data;
+            return ctx->addPool(Data(data->stringValue() == arg ? Data::Type::True : Data::Type::False));
+        });
+        template_.registerFilter("ne:", LAMBDA() {
+            if (!data->isString()) return data;
+            return ctx->addPool(Data(data->stringValue() != arg ? Data::Type::True : Data::Type::False));
         });
         #undef LAMBDA
     }

@@ -293,7 +293,7 @@ public:
     };
 
     class Context;
-    using FilterType = std::function<const Data*(const Data*, Context*)>;
+    using FilterType = std::function<const Data*(const Data*, const std::string& arg, Context*)>;
     using FiltersType = std::unordered_map<StringType, FilterType>;
 
     void registerFilter(const StringType& name, FilterType filter) {
@@ -320,7 +320,7 @@ public:
         });
         return stream;
     }
-    
+
     StringType render(const Data& data) {
         std::basic_ostringstream<typename StringType::value_type> ss;
         return render(data, ss).str();
@@ -443,12 +443,18 @@ public:
                     var = var->get(var_name);
                     if (var) {
                         for (auto& filter_name: filter_names) {
+                            std::string arg = "";
+                            auto i = filter_name.find(':');
+                            if (i != std::string::npos) {
+                                arg = filter_name.substr(i+1);
+                                filter_name = filter_name.substr(0, i+1);
+                            }
                             auto it = filters.find(filter_name);
                             if (it == filters.end()) {
                                 var = nullptr;
                                 break;
                             } else {
-                                var = it->second(var, this);
+                                var = it->second(var, arg, this);
                             }
                         }
                     }
