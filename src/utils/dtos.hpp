@@ -4,14 +4,12 @@
 namespace xlsxconverter {
 namespace utils {
 
-static double PRECISION = 0.00000000000001;
-static int MAX_NUMBER_STRING_SIZE = 32;
-
 std::string dtos(double n) {
+    static double PRECISION = 0.0000000000001;
     // handle special cases
-    if (isnan(n)) {
+    if (std::isnan(n)) {
         return "nan";
-    } else if (isinf(n)) {
+    } else if (std::isinf(n)) {
         return "inf";
     } else if (n == 0.0) {
         return "0";
@@ -23,7 +21,7 @@ std::string dtos(double n) {
         n = -n;
     }
     // calculate magnitude
-    m = log10(n);
+    m = std::log10(n);
     int useExp = (m >= 14 || (neg && m >= 9) || m <= -9);
     if (neg) {
         s.push_back('-');
@@ -32,21 +30,21 @@ std::string dtos(double n) {
     if (useExp) {
         if (m < 0)
             m -= 1.0;
-        n = n / pow(10.0, m);
+        n = n / std::pow(10.0, m);
         m1 = m;
         m = 0;
     }
     if (m < 1.0) {
         m = 0;
     }
-    if (n > 0.1) {
-        n += PRECISION / 2;
+    if (n > PRECISION) {
+        n += PRECISION * 0.5;
     }
     // convert the number
     while (n > PRECISION || m >= 0) {
-        double weight = pow(10.0, m);
-        if (weight > 0 && !isinf(weight)) {
-            digit = floor(n / weight);
+        double weight = std::pow(10.0, m);
+        if (weight > 0 && !std::isinf(weight)) {
+            digit = std::floor(n / weight);
             n -= (digit * weight);
             s.push_back('0' + digit);
         }
@@ -64,17 +62,16 @@ std::string dtos(double n) {
             s.push_back('-');
             m1 = -m1;
         }
+        std::string e;
         m = 0;
         while (m1 > 0) {
-            s.push_back('0' + m1 % 10);
+            e.push_back('0' + m1 % 10);
             m1 /= 10;
             m++;
         }
-        std::string r = s.substr(0, s.size() - m);
-        for (i = 0; i < m; i++) {
-            r.push_back(s[s.size() - 1 - i]);
+        for (int i = 0; i < e.size(); i++) {
+            s.push_back(e[e.size() - 1 - i]);
         }
-        return r;
     }
     return s;
 }
