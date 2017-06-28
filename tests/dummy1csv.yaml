@@ -55,3 +55,8 @@ fields:
 - column: _
   name: "出力無効"
   type: isignored
+
+- column: float_value
+  name: "浮動小数"
+  type: float
+  type_alias: float

@@ -96,9 +96,14 @@ struct CSVHandler {
     void end_row() {}
 
 
-    template<class T, ENABLE_ANY(T, int64_t, double)>
+    template<class T, ENABLE_ANY(T, int64_t)>
     void write_value(const T& value, ...) {
         buffer << value;
+    }
+
+    template<class T, ENABLE_ANY(T, double)>
+    void write_value(const T& value, ...) {
+        buffer << utils::dtos(value);
     }
 
     template<class T, ENABLE_ANY(T, bool)>
