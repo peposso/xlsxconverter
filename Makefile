@@ -111,6 +111,7 @@ cpplint:
 test: $(TARGET)
 	# ./external/cpplint.py --linelength=100 --filter=-build/c++11,-runtime/references,-build/include_order --extensions=hpp,cpp src/**/*.hpp src/**.hpp src/**.cpp
 	$(LDD) $(TARGET)
+	-rm tests/*.json tests/*.lua tests/*.csv
 	$(DEBUGGER) $(TEST)
 	python tests/check_json.py tests/sample.json
 	python tests/check_json.py tests/dummy1fix.json

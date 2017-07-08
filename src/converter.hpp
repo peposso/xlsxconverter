@@ -39,18 +39,18 @@ struct Converter {
     }
 
 
-    YamlConfig& config;
+    YamlConfig& yaml_config;
     bool ignore_relation = false;
     bool using_cache = false;
     std::vector<boost::optional<Validator>> validators;
     std::vector<boost::optional<handlers::RelationMap&>> relations;
 
     inline
-    explicit Converter(YamlConfig& config_, bool using_cache_, bool ignore_relation_ = false)
-            : config(config_),
+    explicit Converter(YamlConfig& yaml_config_, bool using_cache_, bool ignore_relation_ = false)
+            : yaml_config(yaml_config_),
               using_cache(using_cache_),
               ignore_relation(ignore_relation_) {
-        for (auto& field : config.fields) {
+        for (auto& field : yaml_config.fields) {
             if (field.validate == boost::none) {
                 validators.push_back(boost::none);
             } else {
@@ -62,7 +62,7 @@ struct Converter {
                 relations.push_back(handlers::RelationMap::find_cache(field.relation.value()));
             }
         }
-        if (config.arg_config.no_cache) {
+        if (yaml_config.arg_config.no_cache) {
             using_cache = false;
         }
     }
@@ -78,23 +78,27 @@ struct Converter {
 
     template<class T>
     void run(T& handler) {
-        auto paths = config.get_xls_paths();
+        auto paths = yaml_config.get_xls_paths();
         if (paths.empty()) {
-            throw EXCEPTION(config.path, ": target file does not exist.");
+            throw EXCEPTION(yaml_config.path, ": target file does not exist.");
         }
+        for (auto& validator : validators) {
+            if (validator) validator.get().reset();
+        }
+
         handler.begin();
         for (int i = 0; i < paths.size(); ++i) {
             auto xls_path = paths[i];
             try {
                 auto book = open_workbook(xls_path, using_cache);
-                auto& sheet = book->sheet_by_name(config.target_sheet_name);
+                auto& sheet = book->sheet_by_name(yaml_config.target_sheet_name);
                 auto column_mapping = map_column(sheet, xls_path);
                 // process data
                 handle(handler, sheet, column_mapping);
             } catch (utils::exception& exc) {
-                throw EXCEPTION("yaml=", config.path,
+                throw EXCEPTION("yaml=", yaml_config.path,
                                 ": xls=", xls_path,
-                                ": sheet=", config.target_sheet_name,
+                                ": sheet=", yaml_config.target_sheet_name,
                                 ": ", exc.what());
             }
         }
@@ -104,11 +108,11 @@ struct Converter {
     inline
     std::vector<int> map_column(xlsx::Sheet& sheet, std::string& xls_path) {
         std::vector<int> column_mapping;
-        for (int k = 0; k < config.fields.size(); ++k) {
-            auto& field = config.fields[k];
+        for (int k = 0; k < yaml_config.fields.size(); ++k) {
+            auto& field = yaml_config.fields[k];
             bool found = false;
             for (int i = 0; i < sheet.ncols(); ++i) {;
-                auto& cell = sheet.cell(config.row - 1, i);
+                auto& cell = sheet.cell(yaml_config.row - 1, i);
                 if (cell.as_str() == field.name) {
                     column_mapping.push_back(i);
                     found = true;
@@ -121,10 +125,10 @@ struct Converter {
                     continue;
                 }
                 for (int i = 0; i < sheet.ncols(); ++i) {
-                    auto& cell = sheet.cell(config.row-1, i);
+                    auto& cell = sheet.cell(yaml_config.row-1, i);
                     utils::log("cell[", cell.cellname(), "]=", cell.as_str());
                 }
-                throw EXCEPTION(config.path, ": ", xls_path, ": row=", config.row,
+                throw EXCEPTION(yaml_config.path, ": ", xls_path, ": row=", yaml_config.row,
                                 ": field{column=", field.column,
                                 ",name=", field.name, "}: NOT exists.");
             }
@@ -134,11 +138,11 @@ struct Converter {
 
     template<class T>
     void handle(T& handler, xlsx::Sheet& sheet, std::vector<int>& column_mapping) {
-        if (config.handler.comment_row != boost::none) {
-            int row = config.handler.comment_row.value() - 1;
+        if (handler.handler_config.comment_row != boost::none) {
+            int row = handler.handler_config.comment_row.value() - 1;
             handler.begin_comment_row();
             for (int k = 0; k < column_mapping.size(); ++k) {
-                auto& field = config.fields[k];
+                auto& field = yaml_config.fields[k];
                 if (field.type == YamlConfig::Field::Type::kIsIgnored) continue;
                 auto i = column_mapping[k];
                 if (i == -1) {
@@ -150,12 +154,12 @@ struct Converter {
             }
             handler.end_comment_row();
         }
-        for (int j = config.row; j < sheet.nrows(); ++j) {
+        for (int j = yaml_config.row; j < sheet.nrows(); ++j) {
             bool is_empty_line = true;
             bool is_ignored = false;
             for (int k = 0; k < column_mapping.size(); ++k) {
                 using CT = xlsx::Cell::Type;
-                auto& field = config.fields[k];
+                auto& field = yaml_config.fields[k];
                 auto i = column_mapping[k];
                 auto& cell = sheet.cell(j, i);
                 if (i == -1) continue;
@@ -179,7 +183,7 @@ struct Converter {
 
             handler.begin_row();
             for (int k = 0; k < column_mapping.size(); ++k) {
-                auto& field = config.fields[k];
+                auto& field = yaml_config.fields[k];
                 if (field.type == YamlConfig::Field::Type::kIsIgnored) continue;
                 auto i = column_mapping[k];
                 if (i == -1) {;
@@ -316,7 +320,7 @@ struct Converter {
                     throw EXCEPTION("not support datetime definition.");
                     return;
                 }
-                auto tz = config.arg_config.tz_seconds;
+                auto tz = yaml_config.arg_config.tz_seconds;
                 if (cell.type == CT::kDateTime) {
                     auto time = cell.as_time64(tz);
                     handler.field(field, utils::dateutil::isoformat64(time, tz));
@@ -342,7 +346,7 @@ struct Converter {
                     return;
                 }
                 if (cell.type == CT::kDateTime) {
-                    auto tz = config.arg_config.tz_seconds;
+                    auto tz = yaml_config.arg_config.tz_seconds;
                     auto time = cell.as_time64(tz);
                     handler.field(field, utils::dateutil::isoformat64(time, tz));
                     return;
@@ -391,7 +395,7 @@ struct Converter {
                     throw EXCEPTION("not support unixtime definition.");
                     return;
                 }
-                auto tz = config.arg_config.tz_seconds;
+                auto tz = yaml_config.arg_config.tz_seconds;
                 if (cell.type == CT::kDateTime) {
                     auto time = cell.as_time64(tz);
                     handler.field(field, time);

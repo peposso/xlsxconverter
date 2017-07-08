@@ -37,6 +37,7 @@ struct YamlConfig {
         bool csv_field_type = false;
         bool csv_field_column = false;
         YAML::Node context;
+        std::string output_base_path;
 
         static inline
         Type parse_type(const std::string& name) {
@@ -51,8 +52,8 @@ struct YamlConfig {
             return map.at(name);
         }
 
-        inline Handler() {}
-        inline explicit Handler(YAML::Node node) {
+        inline explicit Handler(YAML::Node node, const std::string& output_base_path_)
+                :output_base_path(output_base_path_) {
             auto typepath = utils::split(node["type"].as<std::string>(), '.');
             type_name = typepath[typepath.size()-1];
             try {
@@ -71,6 +72,11 @@ struct YamlConfig {
             if (auto n = node["csv_field_type"]) csv_field_type = n.as<bool>();
             if (auto n = node["csv_field_column"]) csv_field_column = n.as<bool>();
             context = node["context"];
+        }
+
+        inline
+        std::string get_output_path() {
+            return output_base_path + '/' + path;
         }
     };
     struct Field {
@@ -193,7 +199,7 @@ struct YamlConfig {
     std::string target_sheet_name;
     std::string target_xls_path;
     int row;
-    Handler handler;
+    std::vector<Handler> handlers;
     std::vector<Field> fields;
 
     ArgConfig arg_config;
@@ -238,7 +244,16 @@ struct YamlConfig {
         // handler
         if (auto node = doc["handler"]) {;
             try {
-                handler = Handler(node);
+                handlers.emplace_back(node, arg_config.output_base_path);
+            } catch (std::exception& exc) {
+                throw EXCEPTION(path, ": ", exc.what());
+            }
+        }
+        if (auto node = doc["handlers"]) {;
+            try {
+                for (auto child : node) {
+                    handlers.emplace_back(child, arg_config.output_base_path);
+                }
             } catch (std::exception& exc) {
                 throw EXCEPTION(path, ": ", exc.what());
             }
@@ -254,7 +269,7 @@ struct YamlConfig {
             }
         }
 
-        if (handler.sort_keys) {
+        if (handlers[0].sort_keys) {
             std::sort(fields.begin(), fields.end(), [](Field& a, Field& b) {
                 return a.column < b.column;
             });
@@ -299,11 +314,6 @@ struct YamlConfig {
         }
         std::sort(paths.begin(), paths.end());
         return paths;
-    }
-
-    inline
-    std::string get_output_path() {
-        return arg_config.output_base_path + '/' + handler.path;
     }
 
     inline static

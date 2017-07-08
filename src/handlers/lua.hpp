@@ -12,8 +12,8 @@ namespace handlers {
 
 struct LuaHandler : public DjangoFixtureHandler {
     inline
-    explicit LuaHandler(YamlConfig& config)
-            : DjangoFixtureHandler(config) {
+    explicit LuaHandler(YamlConfig::Handler& handler, YamlConfig& config)
+            : DjangoFixtureHandler(handler, config) {
         name_quote = "";
         name_separator = space + "=";
     }

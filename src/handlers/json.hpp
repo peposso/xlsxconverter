@@ -14,6 +14,7 @@ namespace xlsxconverter {
 namespace handlers {
 
 struct JsonHandler {
+    YamlConfig::Handler& handler_config;
     YamlConfig& config;
     std::stringstream buffer;
 
@@ -30,17 +31,18 @@ struct JsonHandler {
     std::string name_separator;
 
     inline
-    explicit JsonHandler(YamlConfig& config)
-            : config(config),
+    explicit JsonHandler(YamlConfig::Handler& handler_config_, YamlConfig& config_)
+            : handler_config(handler_config_),
+              config(config_),
               name_quote("\""),
               name_separator(":") {
-        if (config.handler.indent < 0) {
+        if (handler_config.indent < 0) {
             indent = space = endl = "";
         } else {
-            for (int i = 0; i < config.handler.indent; ++i) {
+            for (int i = 0; i < handler_config.indent; ++i) {
                 indent.push_back(' ');
             }
-            if (config.handler.indent > 0) space = " ";
+            if (handler_config.indent > 0) space = " ";
             endl = "\n";
         }
         field_indent = indent + indent;
@@ -115,7 +117,7 @@ struct JsonHandler {
     template<class T, ENABLE_ANY(T, std::string)>
     void write_value(const T& value) {
         buffer << "\"";
-        if (config.handler.allow_non_ascii) {
+        if (handler_config.allow_non_ascii) {
             for (auto c : value) {
                 putchar_(c);
             }
@@ -162,10 +164,10 @@ struct JsonHandler {
     }
 
     inline
-    void save() {
-        utils::fs::writefile(config.get_output_path(), buffer.str());
-        if (!config.arg_config.quiet) {
-            utils::log("output: ", config.handler.path);
+    void save(ArgConfig& arg_config) {
+        utils::fs::writefile(handler_config.get_output_path(), buffer.str());
+        if (!arg_config.quiet) {
+            utils::log("output: ", handler_config.path);
         }
     }
 

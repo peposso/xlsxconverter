@@ -23,6 +23,7 @@ struct RelationMap {
     }
 
     YamlConfig& config;
+    YamlConfig::Handler& handler_config;
     std::string id;
     std::string column;
     std::string from;
@@ -51,6 +52,7 @@ struct RelationMap {
     inline
     RelationMap(YamlConfig::Field::Relation& relation, YamlConfig& config_)
             : column(relation.column),
+              handler_config(config.handlers[0]),
               from(relation.from),
               key(relation.key),
               id(relation.id),

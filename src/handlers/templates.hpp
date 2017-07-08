@@ -107,6 +107,7 @@ struct TemplateHandler {
     using Data = Kainjow::Mustache::Data;
 
     YamlConfig& config;
+    YamlConfig::Handler& handler_config;
     std::stringstream buffer;
 
     Mustache template_;
@@ -115,9 +116,10 @@ struct TemplateHandler {
     Data current_record_fields;
 
     inline
-    explicit TemplateHandler(YamlConfig& config)
-            : config(config),
-              template_((utils::fs::readfile(config.handler.source))),
+    explicit TemplateHandler(YamlConfig::Handler& handler_config_, YamlConfig& config_)
+            : handler_config(handler_config_),
+              config(config_),
+              template_((utils::fs::readfile(handler_config.source))),
               records(Data::Type::List),
               current_record_fields(Data::Type::List),
               current_record() {
@@ -225,18 +227,18 @@ struct TemplateHandler {
     inline
     void end() {
         Data context;
-        if (config.handler.context.Type() == YAML::NodeType::Map) {
-            context = yaml2data(config.handler.context);
+        if (handler_config.context.Type() == YAML::NodeType::Map) {
+            context = yaml2data(handler_config.context);
         }
         context.set("records", records);
         buffer << template_.render(context);
     }
 
     inline
-    void save() {
-        utils::fs::writefile(config.get_output_path(), buffer.str());
-        if (!config.arg_config.quiet) {
-            utils::log("output: ", config.handler.path);
+    void save(ArgConfig& arg_config) {
+        utils::fs::writefile(handler_config.get_output_path(), buffer.str());
+        if (!arg_config.quiet) {
+            utils::log("output: ", handler_config.path);
         }
     }
 };

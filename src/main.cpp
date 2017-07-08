@@ -171,6 +171,10 @@ struct MainTask {
             }
             auto relmap = handlers::RelationMap(rel, yaml_config);
             auto using_shared = target_xls_counts.has(yaml_config.get_xls_paths()[0]);
+            for (auto& h : yaml_config.handlers) {
+                std::cerr << "handler.path:" << h.type << "\n";
+            }
+            bool isloop = false;
             Converter(yaml_config, using_shared, true).run(relmap);
             handlers::RelationMap::store_cache(std::move(relmap));
         }
@@ -185,33 +189,39 @@ struct MainTask {
             if (yaml_config_opt == boost::none) break;
             auto& yaml_config = yaml_config_opt.value();
 
-            if (yaml_config.handler.type == YamlConfig::Handler::Type::kNone) {
-                if (!arg_config.quiet) {
-                    utils::log("skip: ", yaml_config.path);
-                }
-                continue;
-            }
+            using HT = YamlConfig::Handler::Type;
             auto using_shared = target_xls_counts.has(yaml_config.get_xls_paths()[0]);
             auto converter = Converter(yaml_config, using_shared);
-            using HT = YamlConfig::Handler::Type;
-            switch (yaml_config.handler.type) {;
-                #define CASE(i, T) \
-                    case i: { \
-                        auto handler = T(yaml_config); \
-                        converter.run(handler); \
-                        if (!canceled) handler.save(); \
-                        break; \
+            for (auto& yaml_handler : yaml_config.handlers) {
+                if (yaml_handler.type == YamlConfig::Handler::Type::kNone) {
+                    if (!arg_config.quiet) {
+                        utils::log("skip: ", yaml_config.path);
                     }
-                CASE(HT::kJson, handlers::JsonHandler);
-                CASE(HT::kDjangoFixture, handlers::DjangoFixtureHandler);
-                CASE(HT::kCSV, handlers::CSVHandler);
-                CASE(HT::kLua, handlers::LuaHandler);
-                CASE(HT::kTemplate, handlers::TemplateHandler);
-                #undef CASE
-                default: {
-                    throw EXCEPTION(yaml_config.path,
-                                    ": handler.type=", yaml_config.handler.type_name,
-                                    ": not implemented.");
+                    continue;
+                }
+                utils::log("conv: ", yaml_config.path);
+                switch (yaml_handler.type) {;
+                    #define CASE(i, T) \
+                        case i: { \
+                            for (auto& yaml_handler : yaml_config.handlers) { \
+                                auto handler = T(yaml_handler, yaml_config); \
+                                converter.run(handler); \
+                                if (canceled) break; \
+                                handler.save(arg_config); \
+                            } \
+                            break; \
+                        }
+                    CASE(HT::kJson, handlers::JsonHandler);
+                    CASE(HT::kDjangoFixture, handlers::DjangoFixtureHandler);
+                    CASE(HT::kCSV, handlers::CSVHandler);
+                    CASE(HT::kLua, handlers::LuaHandler);
+                    CASE(HT::kTemplate, handlers::TemplateHandler);
+                    #undef CASE
+                    default: {
+                        throw EXCEPTION(yaml_config.path,
+                                        ": handler.type=", yaml_handler.type_name,
+                                        ": not implemented.");
+                    }
                 }
             }
         }

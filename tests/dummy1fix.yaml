@@ -1,11 +1,20 @@
 target: "xls:///sample.xlsx#dummy1"
 row: 5
 limit: 10
-handler:
-  path: dummy1fix.json
+handlers:
+- path: dummy1fix1.json
+  type: djangofixture
+  indent: 1
+  sort_keys: true
+- path: dummy1fix2.json
+  type: djangofixture
+  indent: 2
+  sort_keys: true
+- path: dummy1fix4.json
   type: djangofixture
   indent: 4
   sort_keys: true
+
 fields:
 - column: id
   name: "連番"

@@ -25,6 +25,13 @@ struct Validator {
           prev_intvalue(boost::none),
           prev_strvalue(boost::none) {}
 
+    inline void reset() {
+        unique_strset.clear();
+        unique_intset.clear();
+        prev_intvalue = boost::none;
+        prev_strvalue = boost::none;
+    }
+
     inline void operator()(const std::string& val) {
         if (validate.unique) {
             if (unique_strset.count(val) != 0) {

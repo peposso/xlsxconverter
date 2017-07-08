@@ -16,6 +16,7 @@ namespace handlers {
 
 struct CSVHandler {
     YamlConfig& config;
+    YamlConfig::Handler& handler_config;
     std::stringstream buffer;
 
     bool is_first_row = false;
@@ -25,8 +26,9 @@ struct CSVHandler {
     const char endl = '\n';
 
     inline
-    explicit CSVHandler(YamlConfig& config)
-        : config(config) {}
+    explicit CSVHandler(YamlConfig::Handler& handler_config_, YamlConfig& config_)
+        : handler_config(handler_config_),
+          config(config_) { }
 
     inline
     void begin() {
@@ -49,7 +51,7 @@ struct CSVHandler {
 
     inline
     void write_field_info_row() {
-        if (config.handler.csv_field_type) {
+        if (handler_config.csv_field_type) {
             begin_row();
             for (auto& f : config.fields) {
                 if (f.type == YamlConfig::Field::Type::kIsIgnored) continue;
@@ -67,7 +69,7 @@ struct CSVHandler {
                 field(f, type_name);
             }
         }
-        if (config.handler.csv_field_column) {
+        if (handler_config.csv_field_column) {
             begin_row();
             for (auto& f : config.fields) {
                 if (f.type == YamlConfig::Field::Type::kIsIgnored) continue;
@@ -144,10 +146,10 @@ struct CSVHandler {
     void end() {}
 
     inline
-    void save() {
-        utils::fs::writefile(config.get_output_path(), buffer.str());
-        if (!config.arg_config.quiet) {
-            utils::log("output: ", config.handler.path);
+    void save(ArgConfig& arg_config) {
+        utils::fs::writefile(handler_config.get_output_path(), buffer.str());
+        if (!arg_config.quiet) {
+            utils::log("output: ", handler_config.path);
         }
     }
 

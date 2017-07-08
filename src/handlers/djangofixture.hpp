@@ -17,8 +17,8 @@ struct DjangoFixtureHandler : public JsonHandler {
     std::string pk_strvalue;
 
     inline
-    explicit DjangoFixtureHandler(YamlConfig& config)
-            : JsonHandler(config) {
+    explicit DjangoFixtureHandler(YamlConfig::Handler& handler_config_, YamlConfig& config_)
+            : JsonHandler(handler_config_, config_) {
         for (auto& field : config.fields) {
             if (field.column == "ID" || field.column == "id" || field.column == "Id") {
                 pk_index = field.index;
