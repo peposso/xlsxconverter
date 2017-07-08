@@ -16,6 +16,10 @@
 #include <unordered_map>
 #include <clocale>
 #include <utility>
+#ifdef _WIN32
+#include <windows.h>
+#include <wincon.h>
+#endif
 
 #include <boost/optional.hpp>  // NOLINT
 
@@ -118,6 +122,23 @@ inline spinlock& logging_lock() {
     return logging_lock;
 }
 
+#ifdef _WIN32
+inline std::vector<WCHAR> u8tow(const std::string& str) {
+    size_t size = ::MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, nullptr, 0);
+    std::vector<WCHAR> buf;
+    buf.resize(size + 1);
+    ::MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, &buf[0], size + 1);
+    buf[size] = '\0';
+    return buf;
+}
+inline HANDLE stderr_handle() {
+    static HANDLE hStderr;
+    if (hStderr == nullptr) hStderr = GetStdHandle(STD_ERROR_HANDLE);
+    return hStderr;
+}
+#endif
+
+
 template<class...A>
 void log(const A&...a) {
     auto s = sscat(a..., '\n');
@@ -129,7 +150,20 @@ template<class...A>
 void logerr(const A&...a) {
     auto s = sscat(a..., '\n');
     std::lock_guard<spinlock> lock(logging_lock());
-    std::cerr << s;
+#ifdef _WIN32
+    auto wc = u8tow(s);
+    CONSOLE_SCREEN_BUFFER_INFO scrInfo;
+    DWORD size;
+    HANDLE h = GetStdHandle(STD_ERROR_HANDLE);
+    bool ok = GetConsoleScreenBufferInfo(h, &scrInfo);
+    if (ok) SetConsoleTextAttribute(h, FOREGROUND_RED | FOREGROUND_INTENSITY);
+    if (!WriteConsoleW(h, wc.data(), wc.size(), &size, nullptr)) {
+        std::cerr << "\e[31m" << s << "\e[m";
+    }
+    if (ok) SetConsoleTextAttribute(h, scrInfo.wAttributes);
+#else
+    std::cerr << "\e[31m" << s << "\e[m";
+#endif
 }
 
 
