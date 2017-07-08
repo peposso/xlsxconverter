@@ -1,0 +1,61 @@
+target: "xls:///sample.xlsx#dummy1"
+row: 5
+limit: 10
+handler:
+  path: dummy1mp.mp
+  type: messagepack
+  messagepack_no_header: false
+  messagepack_upper_camelize: true
+
+fields:
+- column: id
+  name: "連番"
+  type: int
+  validate:
+    unique: true
+
+- column: country_code
+  name: "国籍"
+  type: char
+  type_alias: string
+  default: "JP"
+
+- column: family_name
+  name: "姓"
+  type: char
+  type_alias: string
+
+- column: first_name
+  name: "名"
+  type: char
+  type_alias: string
+
+- column: birthday
+  name: "生年月日"
+  type: datetime
+  type_alias: string
+
+- column: preference_id
+  name: "出身地"
+  type: foreignkey
+  relation:
+    column: id
+    from: 'country.yaml'
+    key: name
+
+- column: current_preference_id
+  name: "現住都道府県"
+  type: foreignkey
+  relation:
+    column: id
+    from: 'country.yaml'
+    key: name
+
+- column: _
+  name: "出力無効"
+  type: isignored
+
+- column: float_value
+  name: "浮動小数"
+  type: float
+  type_alias: float

@@ -171,10 +171,6 @@ struct MainTask {
             }
             auto relmap = handlers::RelationMap(rel, yaml_config);
             auto using_shared = target_xls_counts.has(yaml_config.get_xls_paths()[0]);
-            for (auto& h : yaml_config.handlers) {
-                std::cerr << "handler.path:" << h.type << "\n";
-            }
-            bool isloop = false;
             Converter(yaml_config, using_shared, true).run(relmap);
             handlers::RelationMap::store_cache(std::move(relmap));
         }
@@ -199,7 +195,7 @@ struct MainTask {
                     }
                     continue;
                 }
-                utils::log("conv: ", yaml_config.path);
+                // utils::log("conv: ", yaml_config.path);
                 switch (yaml_handler.type) {;
                     #define CASE(i, T) \
                         case i: { \
@@ -216,6 +212,7 @@ struct MainTask {
                     CASE(HT::kCSV, handlers::CSVHandler);
                     CASE(HT::kLua, handlers::LuaHandler);
                     CASE(HT::kTemplate, handlers::TemplateHandler);
+                    CASE(HT::kMessagePack, handlers::MessagePackHandler);
                     #undef CASE
                     default: {
                         throw EXCEPTION(yaml_config.path,

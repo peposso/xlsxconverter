@@ -7,3 +7,4 @@
 #include "handlers/lua.hpp"
 #include "handlers/templates.hpp"
 #include "handlers/relation_map.hpp"
+#include "handlers/messagepack.hpp"

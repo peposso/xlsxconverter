@@ -6,7 +6,9 @@ OBJS = $(SRCS:%.cpp=%.o)
 LIBS = external/libyaml-cpp.a external/libzip.a external/libpugixml.a
 HEADERS = $(wildcard src/*.hpp) $(wildcard src/handlers/*.hpp) $(wildcard src/utils/*.hpp)
 
-CPPFLAGS = -std=c++11 -O3 -I./src -I./external -I./external/ziplib/Source/ZipLib -I./external/pugixml -I./external/yaml-cpp/include
+CPPFLAGS =  -std=c++11 -O3 -I./src -I./external \
+			-I./external/ziplib/Source/ZipLib -I./external/pugixml \
+			-I./external/yaml-cpp/include  -I./external/msgpack-c/include
 
 BUILD_REVISION = $(shell git rev-parse --short HEAD)
 CPPFLAGS += -DBUILD_REVISION=\"$(BUILD_REVISION)\"
@@ -26,7 +28,7 @@ ifneq ($(DEBUG),)
 endif
 
 TEST = ./$(TARGET)$(EXE) --jobs full \
-		--xls_search_path tests --yaml_search_path tests --output_base_path tests --timezone '+0900'
+		--xls_search_path tests/xlsx --yaml_search_path tests/yaml --output_base_path tests/output --timezone '+0900'
 
 ifeq ($(shell uname -s),Darwin)
 	OS = mac
@@ -111,10 +113,11 @@ cpplint:
 test: $(TARGET)
 	# ./external/cpplint.py --linelength=100 --filter=-build/c++11,-runtime/references,-build/include_order --extensions=hpp,cpp src/**/*.hpp src/**.hpp src/**.cpp
 	$(LDD) $(TARGET)
-	-rm tests/*.json tests/*.lua tests/*.csv
+	-rm tests/output/*
 	$(DEBUGGER) $(TEST)
-	python tests/check_json.py tests/sample.json
-	python tests/check_json.py tests/dummy1fix.json
+	python tests/check_json.py tests/output/sample.json
+	python tests/check_json.py tests/output/dummy1fix2.json
+	-luvit tests/check_mp.lua tests/output/dummy1mp.mp
 	[ -e ../test.sh ] && ../test.sh || true
 .PHONY: test
 

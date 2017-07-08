@@ -22,7 +22,7 @@ namespace xlsxconverter {
 struct YamlConfig {
     struct Handler {
         enum Type {
-            kError, kNone, kJson, kCSV, kDjangoFixture, kLua, kTemplate, kEnum,
+            kError, kNone, kJson, kCSV, kDjangoFixture, kLua, kTemplate, kEnum, kMessagePack,
         };
         Type type = kError;
         std::string type_name;
@@ -36,6 +36,8 @@ struct YamlConfig {
         boost::optional<int> comment_row = boost::none;
         bool csv_field_type = false;
         bool csv_field_column = false;
+        bool messagepack_no_header = false;
+        bool messagepack_upper_camelize = false;
         YAML::Node context;
         std::string output_base_path;
 
@@ -48,6 +50,7 @@ struct YamlConfig {
                 {"djangofixture", Type::kDjangoFixture},
                 {"lua", Type::kLua},
                 {"template", Type::kTemplate},
+                {"messagepack", Type::kMessagePack},
             };
             return map.at(name);
         }
@@ -71,6 +74,10 @@ struct YamlConfig {
             if (auto n = node["comment_row"]) comment_row = n.as<int>();
             if (auto n = node["csv_field_type"]) csv_field_type = n.as<bool>();
             if (auto n = node["csv_field_column"]) csv_field_column = n.as<bool>();
+
+            if (auto n = node["messagepack_no_header"]) messagepack_no_header = n.as<bool>();
+            if (auto n = node["messagepack_upper_camelize"]) messagepack_upper_camelize = n.as<bool>();
+
             context = node["context"];
         }
 
