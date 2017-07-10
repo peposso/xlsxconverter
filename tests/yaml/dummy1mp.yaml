@@ -1,11 +1,19 @@
 target: "xls:///sample.xlsx#dummy1"
 row: 5
 limit: 10
-handler:
-  path: dummy1mp.mp
+handlers:
+- path: dummy1mp.mp
   type: messagepack
   messagepack_no_header: false
   messagepack_upper_camelize: true
+- path: dummy1mp2.mp
+  type: messagepack
+  messagepack_upper_camelize: true
+- path: dummy1mp3.mp
+  type: messagepack
+  messagepack_upper_camelize: true
+- path: dummy1csv2.csv
+  type: csv
 
 fields:
 - column: id
