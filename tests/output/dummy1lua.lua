@@ -111,7 +111,7 @@ return {
         fields = {
             birthday = "1924-11-24T00:00:00+0900",
             country_code = "JP",
-            current_preference_id = 18,
+            current_preference_id = 123,
             family_name = "こここ",
             first_name = "ははは",
             id = 10,

@@ -124,10 +124,12 @@ struct YamlConfig {
             std::string from;
             std::string key;
             std::string id;
+            int ignore = INT_MIN;
             inline explicit Relation(YAML::Node node) {
                 if (auto n = node["column"]) column = n.as<std::string>();
                 if (auto n = node["from"]) from = n.as<std::string>();
                 if (auto n = node["key"]) key = n.as<std::string>();
+                if (auto n = node["ignore"]) ignore = n.as<int>();
                 id = column + ':' + from + ':' + key;
             }
         };

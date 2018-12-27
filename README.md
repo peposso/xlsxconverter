@@ -15,9 +15,9 @@ xlsx to data converter written in c++11.
                   [--output_base_path <path>]
                   [--timezone <tz>]
                   [<target_yaml> ...]
-    
+
 ## EXAMPLE
-    
+
     $ tree
     .
     ├── bin
@@ -65,6 +65,7 @@ xlsx to data converter written in c++11.
 | fields[].relation.from       | str  | relational yaml path |
 | fields[].relation.column     | str  | select $column from $from when $key = cell.value; |
 | fields[].relation.key        | str  |  |
+| fields[].relation.ignore     | int  |  |
 | fields[].definition          | map  | mapping definition |
 | fields[].validate.unique     | bool | checking if unique |
 | fields[].validate.sorted     | bool | checking if sorted |

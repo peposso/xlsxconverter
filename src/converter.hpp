@@ -428,6 +428,13 @@ struct Converter {
                     handle_cell_default(handler, field);
                     return;
                 }
+                if (cell.type == CT::kInt && field.relation.value().ignore != INT_MIN) {
+                    auto i = cell.as_int();
+                    if (i == field.relation.value().ignore) {
+                        handler.field(field, cell.as_int());
+                        return;
+                    }
+                }
                 auto& relmap = relation.value();
                 if (relmap.id != field.relation->id) {
                     throw EXCEPTION("relation maps was broken. id=", relmap.id);

@@ -49,6 +49,7 @@ fields:
     column: id
     from: 'country.yaml'
     key: name
+    ignore: 123
 
 - column: current_preference_id
   name: "現住都道府県"
@@ -57,6 +58,7 @@ fields:
     column: id
     from: 'country.yaml'
     key: name
+    ignore: 123
 
 - column: _
   name: "出力無効"
