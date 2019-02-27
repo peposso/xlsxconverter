@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <string>
 #include <sstream>
+#include <vector>
 #include <msgpack.hpp>
 #include "yaml_config.hpp"
 #include "utils.hpp"

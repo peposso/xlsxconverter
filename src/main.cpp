@@ -199,10 +199,12 @@ struct MainTask {
                 switch (yaml_handler.type) {;
                     #define CASE(i, T) \
                         case i: { \
-                            auto handler = T(yaml_handler, yaml_config); \
-                            converter.run(handler); \
-                            if (canceled) break; \
-                            handler.save(arg_config); \
+                            for (auto& yaml_handler : yaml_config.handlers) { \
+                                auto handler = T(yaml_handler, yaml_config); \
+                                converter.run(handler); \
+                                if (canceled) break; \
+                                handler.save(arg_config); \
+                            } \
                             break; \
                         }
                     CASE(HT::kJson, handlers::JsonHandler);
@@ -240,6 +242,10 @@ int main(int argc, char** argv) {
     if (arg_config->targets.empty() && arg_config->yaml_search_paths.empty()) {
         std::cerr << ArgConfig::help() << std::endl;
         return 1;
+    }
+
+    if (arg_config->verbose) {
+        xlsxconverter::utils::enable_verbose();
     }
 
     int jobs = arg_config->jobs;

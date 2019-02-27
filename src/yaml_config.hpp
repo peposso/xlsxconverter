@@ -76,7 +76,8 @@ struct YamlConfig {
             if (auto n = node["csv_field_column"]) csv_field_column = n.as<bool>();
 
             if (auto n = node["messagepack_no_header"]) messagepack_no_header = n.as<bool>();
-            if (auto n = node["messagepack_upper_camelize"]) messagepack_upper_camelize = n.as<bool>();
+            if (auto n = node["messagepack_upper_camelize"])
+                messagepack_upper_camelize = n.as<bool>();
 
             context = node["context"];
         }
@@ -124,7 +125,7 @@ struct YamlConfig {
             std::string from;
             std::string key;
             std::string id;
-            int ignore = INT_MIN;
+            int ignore = std::numeric_limits<int>::max();
             inline explicit Relation(YAML::Node node) {
                 if (auto n = node["column"]) column = n.as<std::string>();
                 if (auto n = node["from"]) from = n.as<std::string>();

@@ -16,6 +16,7 @@
 #include <unordered_map>
 #include <clocale>
 #include <utility>
+#include <memory>
 #ifdef _WIN32
 #include <windows.h>
 #include <wincon.h>
@@ -141,6 +142,23 @@ inline HANDLE stderr_handle() {
 
 template<class...A>
 void log(const A&...a) {
+    auto s = sscat(a..., '\n');
+    std::lock_guard<spinlock> lock(logging_lock());
+    std::cout << s;
+}
+
+inline bool& get_verbose() {
+    static bool verbose;
+    return verbose;
+}
+
+inline void enable_verbose() {
+    get_verbose() = true;
+}
+
+template<class...A>
+void logv(const A&...a) {
+    if (!get_verbose()) return;
     auto s = sscat(a..., '\n');
     std::lock_guard<spinlock> lock(logging_lock());
     std::cout << s;

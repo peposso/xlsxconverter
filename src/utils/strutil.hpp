@@ -97,6 +97,6 @@ inline std::string upper_camel(const std::string& s) {
     return r;
 }
 
-}  // strutil
-}
-}
+}  // namespace strutil
+}  // namespace utils
+}  // namespace xlsxconverter

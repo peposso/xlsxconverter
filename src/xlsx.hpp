@@ -248,7 +248,7 @@ struct Cell {
         if (*it == '+' || *it == '-') ++it;
         bool digit = false;
         bool dot = false;
-        for (;it != v.end(); ++it) {
+        for (; it != v.end(); ++it) {
             if ('0' <= *it && *it <= '9') {
                 digit = true;
             } else if (*it == '.') {
@@ -259,7 +259,7 @@ struct Cell {
                 ++it;
                 if (*it == '+' || *it == '-') ++it;
                 bool expdigit = false;
-                for (;it != v.end(); ++it) {
+                for (; it != v.end(); ++it) {
                     if ('0' <= *it && *it <= '9') {
                         expdigit = true;
                     } else {
@@ -541,6 +541,7 @@ struct Workbook {
         for (size_t i = 0; i < count; ++i) {
             auto entry = archive->GetEntry(static_cast<int>(i));
             std::string fullname = entry->GetFullName();
+            entry_names.push_back(fullname);
             auto p = fullname.rfind('.');
             if (p == std::string::npos) continue;
             auto ext = fullname.substr(p);
@@ -551,7 +552,7 @@ struct Workbook {
                 continue;
             }
             entry_indexes[fullname] = i;
-            entry_names.push_back(fullname);
+            xlsxconverter::utils::logv("entry_index:", i, "  entry_name:", fullname);
         }
 
         if (entry_indexes.count("xl/workbook.xml") == 0) {
@@ -586,6 +587,7 @@ struct Workbook {
                     throw Exception("duplicate r:id=", rid, " entry=", entry_names[i]);
                 }
                 rels[rid] = target;
+                xlsxconverter::utils::logv("rid:", rid, "  target:", target);
             }
         }
 
@@ -596,6 +598,7 @@ struct Workbook {
             auto sheet_name = sheet.attribute("name").as_string();
             sheet_rid_by_name[sheet_name] = sheet_rid;
             sheet_name_by_rid[sheet_rid] = sheet_name;
+            xlsxconverter::utils::logv("sheet_rid:", sheet_rid, "  sheet_name:", sheet_name);
         }
 
         auto shared_string_doc = load_doc("xl/sharedStrings.xml");

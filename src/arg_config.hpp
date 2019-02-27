@@ -22,6 +22,7 @@ struct ArgConfig {
     std::vector<std::string> yaml_search_paths;
     std::string output_base_path;
     bool quiet;
+    bool verbose;
     bool no_cache;
     int tz_seconds;
     int jobs;
@@ -73,6 +74,9 @@ struct ArgConfig {
                     continue;
                 } else if (arg == "--quiet") {
                     quiet = true;
+                    continue;
+                } else if (arg == "--verbose") {
+                    verbose = true;
                     continue;
                 } else if (arg == "--no_cache") {
                     no_cache = true;
