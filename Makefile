@@ -111,7 +111,7 @@ cpplint:
 	./external/cpplint.py --linelength=100 --filter=-build/c++11,-runtime/references,-build/include_order --extensions=hpp,cpp src/**/*.hpp src/**.hpp src/**.cpp
 
 test: $(TARGET)
-	./external/cpplint.py --linelength=100 --filter=-build/c++11,-runtime/references,-build/include_order --extensions=hpp,cpp src/**/*.hpp src/**.hpp src/**.cpp
+	# ./external/cpplint.py --linelength=100 --filter=-build/c++11,-runtime/references,-build/include_order --extensions=hpp,cpp src/**/*.hpp src/**.hpp src/**.cpp
 	$(LDD) $(TARGET)
 	-rm tests/output/*
 	$(DEBUGGER) $(TEST)
