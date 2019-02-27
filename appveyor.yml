@@ -2,8 +2,6 @@ skip_tags: true
 skip_commits:
   files:
     - .travis.yml
-platform:
-  - x64
 install:
   - C:\msys64\usr\bin\pacman --noconfirm --sync --refresh --sysupgrade --sysupgrade
   - C:\msys64\usr\bin\pacman --noconfirm --sync --sysupgrade --sysupgrade
@@ -31,6 +29,6 @@ artifacts:
 - path: build/*.zip
   name: release
 deploy:
-- provider: GitHub
+- provider: GitHub Releases
   auth_token:
     secure: 8bKmFerDMwLIfABa41a6CpaGluVY3D7JEZRKTd1T+or28zGe0Ssw/ZRrdw1Exwf1
