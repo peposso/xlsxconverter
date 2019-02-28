@@ -147,23 +147,6 @@ void log(const A&...a) {
     std::cout << s;
 }
 
-inline bool& get_verbose() {
-    static bool verbose;
-    return verbose;
-}
-
-inline void enable_verbose() {
-    get_verbose() = true;
-}
-
-template<class...A>
-void logv(const A&...a) {
-    if (!get_verbose()) return;
-    auto s = sscat(a..., '\n');
-    std::lock_guard<spinlock> lock(logging_lock());
-    std::cout << s;
-}
-
 template<class...A>
 void logerr(const A&...a) {
     auto s = sscat(a..., '\n');

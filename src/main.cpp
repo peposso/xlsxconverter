@@ -199,12 +199,10 @@ struct MainTask {
                 switch (yaml_handler.type) {;
                     #define CASE(i, T) \
                         case i: { \
-                            for (auto& yaml_handler : yaml_config.handlers) { \
-                                auto handler = T(yaml_handler, yaml_config); \
-                                converter.run(handler); \
-                                if (canceled) break; \
-                                handler.save(arg_config); \
-                            } \
+                            auto handler = T(yaml_handler, yaml_config); \
+                            converter.run(handler); \
+                            if (canceled) break; \
+                            handler.save(arg_config); \
                             break; \
                         }
                     CASE(HT::kJson, handlers::JsonHandler);
@@ -245,7 +243,7 @@ int main(int argc, char** argv) {
     }
 
     if (arg_config->verbose) {
-        xlsxconverter::utils::enable_verbose();
+        xlsx::verbose = true;
     }
 
     int jobs = arg_config->jobs;

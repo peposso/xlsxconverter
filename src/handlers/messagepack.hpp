@@ -110,6 +110,7 @@ struct MessagePackHandler {
         // assign later for escaping pointer address move.
         strbufstack.emplace_back(value, table.size()-1, table.back().size());
         table.back().emplace_back();
+
     }
 
     template<class T, ENABLE_ANY(T, std::nullptr_t)>
