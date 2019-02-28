@@ -25,9 +25,9 @@ build_script:
     C:\msys64\usr\bin\bash -l -c "cd /c/projects/xlsxconverter && make release OS=windows ARCH=x86"
 artifacts:
 - path: build\*.zip
-  name: release
+  name: Releases
 deploy:
 - provider: GitHub
   auth_token:
     secure: vdYbDR6bhVD4b/Lwlb5taLlROt0Y1mldXNj3vzcPdE+Q1UDaBYrw/Yb0QKziImcO
-  artifact: '*'
+  artifact: Releases
