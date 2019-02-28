@@ -17,12 +17,10 @@ matrix:
     compiler: clang
 before_install:
   - if [ "$CXX" = "g++" ]; then export CXX="g++-5" CC="gcc-5"; fi
-before_script: 
 script:
   - make
   - make test
   - make release
-after_success: 
 notifications:
   email: false
 before_deploy:
@@ -31,7 +29,7 @@ before_deploy:
 deploy:
   provider: releases
   api_key:
-    secure: ZxKrXOvkkD5f2AvdC0aSAfyMvMBlBHACGU7Tch3wvDFxzobnpy+aTvlVtf/XRXpJwVQtLrVlLetYBwU2ALWMVrx/P1xCa8ZWQ0KcVzMlKoRtsCaL+7uZoXPf8Sknae8DnzbCcH2cfGgHkQu8XDBHxDnCgTgecrNXtcXnt0e2X1Iuo6NPHUpOo68cdb8bKNuyZ0Etdpc2g1GumSMNByQe4wgI3nqbcyWV3BHvraJ7HECQLngGM3BxFXp1bXocruEa28dzO5cBoIS8FiWjI6O4lt3YY0hO2OTTvMuxyEzTFKA35hKvFBsYyjEoWZvGBbC7CsDo8zXDKsPS9+o6dMZA1mRwRoNRyxJHdvfY8TBRxFmzhxArtaeBlN9lTVBIz3SYpc9aloCRKzCN/jJup+h3Q1OhxUgx76LPMBLyQD/KUR5bwdx/fdiSg71GvjaplFOtLSHd9nD5rz3HGJj94nK40HYGMklCAgO+KTqSVlctwBMrAknKEJFk1ur+R/RfDzKJ3c0TF1tIlBjuJAuSeg4EGPex28CEAQOXctN6eHiHL68Vjrye52ngds7XUoM8B3YApaJq76grlAh0WD1nWZt8O3uEgYFKSoqzr2t1YSFPlx0zzVDLEqZVi1gMlKeBHjq+0seCmjqZ6B8zGaZQ36VQdfbGEEIL3gl3cSTNPKTke5c=
+    secure: "kGQ42lJ2swkXtQ/WCMN+9v9V9GshIvmNMYTxPSlPcQX48VEwt3EkOpj+fI6f0NglO3glcWEfM0ekZQ4nUUs98bOY9hRowtDn9mgJpxtoVldmXdvTJ3QVKDvx7Bxwhkdqlkw/0skb+c7tg2nnLyacxwBw4w7FS7VEgx8t+fog5U8oNF9Q+6g+cIFqFiaj6oXkcZKXcThg+qObczKKQzs4KUo5y13MzcigW+DRdNFHR0MQwtXe2Ue62b4a08G5eX0DmljaN1PB7iG7XJU9RbEjVxDMoroBwZATt2bfAOJPu/Ck1ZA165yJTN4+4TrjT/HKPkfYc2elE7Kl11Xrg7GBDI89DJ+NZPZw0atY1Xfk9cdyAbk9mHGKbX9eLamLMaLvt2UIHd9qEZtxsf/iVTdXk2iE2Tha8A/YdYbXYO4MCLVEqmGQdEYor5AyB3JbEVcvmWfX312K0pMyxqGkQqIkVssCuVE3ayunVN/ZgRI9Phf94WznI5H5qwQYDJY+s6RXOxU7MLy+clMsFxsb41yxyV9CMxfaOCOyIz3QYA4omlgorGJZiCLyS7VQVfVtJVF2pnFazg1FHj2XqeI+M1a26jJ2FYKjFGYMuMl1THnh/4K2jIY6R0aAJn/exboFZVBGPamGKlKxc6BygrbVbGyXlvoTQBvuJIrAas1Dtm4UToQ="
   file_glob: true
   file: "${RELEASE_PKG_FILE}"
   on:
