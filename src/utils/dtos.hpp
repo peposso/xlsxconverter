@@ -4,6 +4,7 @@
 namespace xlsxconverter {
 namespace utils {
 
+inline
 std::string dtos(double n) {
     static double PRECISION = 0.0000000000001;
     // handle special cases

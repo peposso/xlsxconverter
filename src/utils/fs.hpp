@@ -298,6 +298,7 @@ struct iterdir {
     inline iterator end() { return iterator(dirname, filter, -1); }
 };
 
+inline
 std::vector<std::string> walk(const std::string& dirname, const std::string& filter = "") {
     std::vector<std::string> files;
     for (auto& entry : iterdir(dirname)) {

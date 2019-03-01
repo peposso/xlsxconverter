@@ -243,7 +243,7 @@ int main(int argc, char** argv) {
     }
 
     if (arg_config->verbose) {
-        xlsx::verbose = true;
+        xlsx::verbose() = true;
     }
 
     int jobs = arg_config->jobs;

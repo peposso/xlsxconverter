@@ -38,14 +38,21 @@ std::string sscat(const A&...a) {
     return ss.str();
 }
 
-static bool verbose = false;
-static std::mutex log_mutex_;
+inline bool& verbose() {
+    static bool verbose_ = false;
+    return verbose_;
+}
+
+inline std::mutex& log_mutex() {
+    static std::mutex log_mutex_;
+    return log_mutex_;
+}
 
 template<class...A>
 void logv(const A&...a) {
-    if (!verbose) return;
+    if (!verbose()) return;
     auto s = sscat(a...);
-    std::lock_guard<std::mutex> lock(log_mutex_);
+    std::lock_guard<std::mutex> lock(log_mutex());
     std::cout << s << "\n";
 }
 
